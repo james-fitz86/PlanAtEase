@@ -1,0 +1,1 @@
+# PlanAtEase - **Smart Travel Itinerary Builder**
