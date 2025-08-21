@@ -11,5 +11,4 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
         user = authenticate(email=email, password=password)
         if not user:
             raise serializers.ValidationError("Invalid credentials")
-        # SimpleJWT still expects "username" internally; pass user.email as username
         return super().validate({"username": user.email, "password": password})

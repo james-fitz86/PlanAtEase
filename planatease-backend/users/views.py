@@ -16,7 +16,7 @@ class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer
 
     def get(self, request):
-        # This lets the Browsable API show the POST form
+        
         return Response({"detail": "POST email and password to log in."})
 
     def post(self, request):
@@ -27,7 +27,7 @@ class LoginView(generics.GenericAPIView):
 
         user = authenticate(request, email=email, password=password)
         if user:
-            login(request, user)  # session cookie for browsable API
+            login(request, user)
             return Response({"detail": "Logged in"})
         return Response({"detail": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
 
