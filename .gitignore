@@ -6,7 +6,7 @@ __pycache__/
 .env
 
 # Django collectstatic
-backend/staticfiles/
+planatease-backend/staticfiles/
 
 # Node
 frontend/node_modules/
