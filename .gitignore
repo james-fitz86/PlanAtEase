@@ -15,3 +15,5 @@ frontend/build/
 
 # General
 .DS_Store
+
+.vscode/
