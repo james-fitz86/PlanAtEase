@@ -11,4 +11,4 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
         user = authenticate(email=email, password=password)
         if not user:
             raise serializers.ValidationError("Invalid credentials")
-        return super().validate({"username": user.email, "password": password})
+        return super().validate({"email": user.email, "password": password})
