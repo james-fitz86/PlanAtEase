@@ -1,7 +1,11 @@
-import Footer from './components/base/footer.jsx'
-import './App.css';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Header from "./components/base/Header.jsx";
+import Footer from "./components/base/Footer.jsx";
+import Login from "./pages/Login.jsx";
+import Register from "./pages/Register.jsx"
+import "./App.css";
 
-export default function App() {
+function Home() {
   return (
     <div>
       <img
@@ -11,7 +15,21 @@ export default function App() {
       />
       <h1>Welcome to PlanAtEase</h1>
       <h2>Your Smart Travel Itinerary Builder</h2>
-      <Footer />
     </div>
   );
 }
+
+export default function App() {
+  return (
+    <Router>
+      <Header />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={< Register />} />
+      </Routes>
+      <Footer />
+    </Router>
+  );
+}
+
