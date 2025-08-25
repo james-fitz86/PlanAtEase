@@ -2,7 +2,9 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./components/base/Header.jsx";
 import Footer from "./components/base/Footer.jsx";
 import Login from "./pages/Login.jsx";
-import Register from "./pages/Register.jsx"
+import Register from "./pages/Register.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
+import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
 import "./App.css";
 
 function Home() {
@@ -27,6 +29,16 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={< Register />} />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Home />} />
       </Routes>
       <Footer />
     </Router>
