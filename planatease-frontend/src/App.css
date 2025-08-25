@@ -1,9 +1,16 @@
+html, body, #root{
+  height: 100%;
+  margin: 0;
+}
 h1 {
   font-size: 2.5rem;
   color: #2c3e50;
   margin-top: 50px;
 }
 #root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
   text-align: center;
   margin-top: 50px;
   max-width: 1280px;
@@ -11,6 +18,11 @@ h1 {
   padding: 2rem;
   background-color: #fdfdfd;
 }
+main {
+  flex: 1;
+}
 footer {
-  font-size: 1rem;
+  color: rgb(116,182,208);
+  font-size: 1.2rem;
+  margin-top: auto;
 }
