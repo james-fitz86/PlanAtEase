@@ -144,8 +144,8 @@ export async function me() {
 
 export function logout() {
   clearTokens();
-  if (window.location.pathname !== "/login") {
-    window.location.assign("/login");
+  if (window.location.pathname !== "/logout-success") {
+    window.location.assign("/logout-success");
   }
 }
 
