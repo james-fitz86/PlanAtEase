@@ -5,6 +5,7 @@ import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
+import LogoutSuccess from "./pages/LogoutSuccess.jsx";
 import "./App.css";
 
 function Home() {
@@ -38,6 +39,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/logout-success" element={<LogoutSuccess />} />
         <Route path="*" element={<Home />} />
       </Routes>
       <Footer />
