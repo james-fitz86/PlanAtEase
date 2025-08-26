@@ -22,7 +22,7 @@ def landing(_request):
     return HttpResponse(
         """<!doctype html>
 <title>PlanAtEase API</title>
-<main style="font-family:sans-serif;max-width:680px;margin:4rem auto;padding:1rem">
+<main style="font-family:sans-serif;max-width:680px;margin:4rem auto;padding:1rem;text-align:center">
   <h1>PlanAtEase API</h1>
   <p>Frontend: <a href="https://planatease.netlify.app">planatease.netlify.app</a></p>
 </main>""",
