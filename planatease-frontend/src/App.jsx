@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import logo from "./assets/images/planatease_logo.png";
 import Header from "./components/base/Header.jsx";
 import Footer from "./components/base/Footer.jsx";
 import Login from "./pages/Login.jsx";
@@ -12,7 +13,7 @@ function Home() {
   return (
     <div>
       <img
-        src="src/assets/images/planatease_logo.png"
+        src={logo}
         alt="PlanAtEase Logo"
         style={{ width: "600px", marginBottom: "20px" }}
       />
