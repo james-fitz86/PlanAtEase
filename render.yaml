@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: planatease-backend
+    env: python
+    plan: free
+    buildCommand: |
+      pip install -r planatease-backend/requirements.txt
+      cd planatease-backend && python manage.py collectstatic --noinput && python manage.py migrate --noinput
+    startCommand: cd planatease-backend && gunicorn config.wsgi:application --preload --timeout 120
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
