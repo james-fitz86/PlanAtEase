@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { login } from "../api";
 
 export default function Login() {
@@ -60,6 +60,10 @@ export default function Login() {
         <button type="submit" className="btn btn-primary w-100">
           Sign in
         </button>
+
+        <div className="text-center">
+          <Link to="/password-reset">Forgot your password?</Link>
+        </div>
       </form>
     </div>
   );
