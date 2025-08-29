@@ -7,6 +7,9 @@ import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
 import LogoutSuccess from "./pages/LogoutSuccess.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
+
 import "./App.css";
 
 function Home() {
@@ -15,7 +18,7 @@ function Home() {
       <img
         src={logo}
         alt="PlanAtEase Logo"
-        style={{ width: "600px", marginBottom: "20px" }}
+        style={{ width: "100%", maxWidth:"600px", marginBottom: "20px" }}
       />
       <h1>Welcome to PlanAtEase</h1>
       <h2>Your Smart Travel Itinerary Builder</h2>
@@ -42,6 +45,8 @@ export default function App() {
             }
           />
           <Route path="/logout-success" element={<LogoutSuccess />} />
+          <Route path="/password-reset" element={<ForgotPassword />} />
+          <Route path="/password-reset/confirm/:uid/:token" element={<ResetPassword />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </main>
