@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    "djoser",
 ]
 
 MIDDLEWARE = [
@@ -155,3 +156,17 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOWED_ORIGINS = [os.getenv("CORS_ALLOWED_ORIGINS")]
+
+DJOSER = {
+    "PASSWORD_RESET_CONFIRM_URL": "password-reset/confirm/{uid}/{token}",
+    "EMAIL_FRONTEND_DOMAIN": os.getenv("FRONTEND_DOMAIN", "localhost:5173"),
+    "EMAIL_FRONTEND_PROTOCOL": os.getenv("FRONTEND_PROTOCOL", "http"),
+}
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.environ.get('EMAIL_HOST')
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get("EMAIL_USER")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_PASS")
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
