@@ -34,4 +34,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("auth/", include("users.urls", namespace="users")),
     path("auth/", include("djoser.urls")),
+    path("api/trips/", include("trips.urls", namespace="trips")),
 ]
