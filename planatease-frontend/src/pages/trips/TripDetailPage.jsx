@@ -3,6 +3,27 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { getTrip, listTripMembers, deleteTrip } from "../../api/trips";
 import MemberCard from "../../components/trips/MemberCard";
 
+function formatDate(dateStr) {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  return `${day}/${month}`;
+}
+
+function tripTitle(trip) {
+  const name = trip?.name?.trim();
+  const city = trip?.city_name?.trim();
+  const formatted = trip?.formatted_address?.trim();
+
+  if (name && city && name.toLowerCase() !== city.toLowerCase()) {
+    return name;
+  }
+  if (city) return `Trip to ${city}`;
+  if (formatted) return formatted;
+  return "Trip";
+}
+
 export default function TripDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -69,11 +90,9 @@ export default function TripDetailPage() {
     <div className="container my-4">
       <header className="d-flex justify-content-between align-items-center mb-4">
           <div>
-          <h1 className="h4 mb-1">
-              {trip.name || trip.city_name || trip.formatted_address || "Trip"}
-          </h1>
+          <h1 className="h4 mb-1">{tripTitle(trip)}</h1>
           <p className="text-muted small mb-0">
-              {trip.start_date} → {trip.end_date}
+              {formatDate(trip.start_date)} → {formatDate(trip.end_date)}
           </p>
           </div>
           <Link to="/dashboard" className="btn btn-outline-secondary btn-sm">
@@ -92,31 +111,52 @@ export default function TripDetailPage() {
           )}
       </header>
 
-      <div className="row g-4">
-          <div className="col-12 col-md-6">
-            <div className="card h-100">
+      <div className="row">
+        <div className="col-12 col-md-7 col-lg-7">
+          <div className="row g-4">
+            <div className="col-12 col-md-12">
+              <div className="card h-100">
                 <div className="card-body">
                   <h5 className="card-title mb-3">Location</h5>
                   <dl className="row mb-0 small">
-                      <dt className="col-4 text-muted">City</dt>
-                      <dd className="col-8">{trip.city_name || "-"}</dd>
-
-                      <dt className="col-4 text-muted">Country</dt>
-                      <dd className="col-8">{trip.country_code || "-"}</dd>
+                    <dt className="col-4 text-muted">City</dt>
+                    <dd className="col-8">{trip.city_name || "-"}</dd>
+                    <dt className="col-4 text-muted">Country</dt>
+                    <dd className="col-8">{trip.country_code || "-"}</dd>
                   </dl>
                 </div>
+              </div>
+            </div>
+
+            <div className="col-12">
+              <MemberCard
+                tripId={id}
+                members={members}
+                canManage={!!trip?.is_owner}
+                tripOwnerId={trip?.owner_id}
+                refreshMembers={refreshMembers}
+              />
             </div>
           </div>
+        </div>
 
-          <div className="col-12 col-md-6">
-            <MemberCard
-              tripId={id}
-              members={members}
-              canManage={!!trip?.is_owner}
-              tripOwnerId={trip?.owner_id}
-              refreshMembers={refreshMembers}
+        <aside className="col-12 col-md-5 col-lg-5 col-sticky">
+          <div
+            className="sticky-map border rounded-3 overflow-hidden"
+          >
+            <iframe
+              title="Trip Map"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              style={{ width: "100%", height: "100%", border: 0 }}
+              src={`https://www.google.com/maps?q=${encodeURIComponent(
+                trip.formatted_address ||
+                  trip.city_name ||
+                  `${trip.city_name || ""} ${trip.country_code || ""}`
+              )}&output=embed`}
             />
           </div>
+        </aside>
       </div>
     </div>
   );
