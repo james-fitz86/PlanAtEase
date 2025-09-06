@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { me, logout } from "../api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import AllTrips from "../components/trips/AllTrips";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -21,15 +22,38 @@ export default function Dashboard() {
   if (!user && !err) return <p style={{ padding: 24 }}>Loading…</p>;
 
   return (
-    <div style={{ maxWidth: 640, margin: "2rem auto" }}>
-      <h1>Dashboard</h1>
+    <div className="container py-4" style={{ maxWidth: "720px" }}>
+      <h1 className="h3 mb-3">Dashboard</h1>
+
       {user && (
         <>
-          <p>Welcome, <strong>{user.full_name || user.email}</strong></p>
-          <button onClick={logout}>Log out</button>
+          <div className="alert alert-light d-flex justify-content-between align-items-center">
+            <span>
+              Welcome, <strong>{user.full_name || user.email}</strong>
+            </span>
+            <div className="btn-group">
+              <button
+                className="btn btn-outline-secondary btn-sm"
+                onClick={logout}
+              >
+                Log out
+              </button>
+              <Link to="/trips/create" className="btn btn-primary btn-sm">
+                Create Trip
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <h2 className="h5 mb-0">My Trips</h2>
+            </div>
+            <AllTrips />
+          </div>
         </>
       )}
-      {err && <p style={{ color: "crimson" }}>{err}</p>}
+
+      {err && <div className="alert alert-danger mt-3">{err}</div>}
     </div>
   );
 }
