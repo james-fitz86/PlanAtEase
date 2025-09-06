@@ -2,9 +2,10 @@ from django.db.models import Q
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, NotFound
+from django.shortcuts import get_object_or_404
 
 from .models import Trip, TripMember
-from .serializers import TripSerializer, TripMemberSerializer
+from .serializers import TripSerializer, TripMemberSerializer, TripMemberCreateSerializer
 from .permissions import IsTripOwnerOrMemberReadOnly
 # Create your views here.
 
@@ -32,7 +33,6 @@ class TripRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
 class TripMemberListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = TripMemberSerializer
 
     def dispatch(self, request, *args, **kwargs):
         self.trip = Trip.objects.filter(id=self.kwargs["trip_id"]).first()
@@ -46,41 +46,49 @@ class TripMemberListCreateView(generics.ListCreateAPIView):
             raise PermissionDenied("You do not have access to this trip.")
         return TripMember.objects.filter(trip=self.trip).select_related("user")
 
-    def create(self, request, *args, **kwargs):
-        if self.trip.owner_id != request.user.id:
+    def get_serializer_class(self):
+        return TripMemberCreateSerializer if self.request.method == "POST" else TripMemberSerializer
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["trip"] = self.trip
+        return ctx
+
+    def perform_create(self, serializer):
+        if self.request.user.id != self.trip.owner_id:
             raise PermissionDenied("Only the owner can add members.")
-        user_id = request.data.get("user")
-        role = request.data.get("role", "editor")
-        if not user_id:
-            return Response({"user": "This field is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        if int(user_id) == self.trip.owner_id:
-            return Response({"user": "Owner need not be added as a member."}, status=status.HTTP_400_BAD_REQUEST)
-
-        member, created = TripMember.objects.get_or_create(
-            trip=self.trip, user_id=user_id, defaults={"role": role}
-        )
-        if not created:
-            member.role = role
-            member.save()
-
-        return Response(TripMemberSerializer(member).data, status=status.HTTP_201_CREATED)
+        serializer.save()
 
 
 class TripMemberDestroyView(generics.DestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
+    lookup_url_kwarg = "user_id"
 
     def dispatch(self, request, *args, **kwargs):
-        self.trip = Trip.objects.filter(id=self.kwargs["trip_id"]).first()
-        if not self.trip:
-            raise NotFound("Trip not found")
+        self.trip = get_object_or_404(Trip, pk=self.kwargs["trip_id"])
         return super().dispatch(request, *args, **kwargs)
 
+    def _resolve_user_id(self, raw):
+        if str(raw).lower() == "me":
+            return self.request.user.id
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            raise NotFound("Invalid member id.")
+
+    def get_object(self):
+        target_user_id = self._resolve_user_id(self.kwargs[self.lookup_url_kwarg])
+        member = get_object_or_404(TripMember, trip=self.trip, user_id=target_user_id)
+        return member
+
     def delete(self, request, *args, **kwargs):
-        if self.trip.owner_id != request.user.id:
-            raise PermissionDenied("Only the owner can remove members.")
-        user_id = self.kwargs["user_id"]
-        deleted, _ = TripMember.objects.filter(trip=self.trip, user_id=user_id).delete()
-        if not deleted:
-            return Response({"detail": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
+        member = self.get_object()
+
+        if member.user_id == self.trip.owner_id:
+            raise PermissionDenied("Cannot remove the trip owner.")
+
+        if not (request.user.id == self.trip.owner_id or request.user.id == member.user_id):
+            raise PermissionDenied("You don't have permission to remove this member.")
+
+        member.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
