@@ -9,6 +9,8 @@ import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
 import LogoutSuccess from "./pages/LogoutSuccess.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
+import CreateTripPage from "./pages/trips/CreateTripPage.jsx";
+import TripDetailPage from "./pages/trips/TripDetailPage.jsx";
 
 import "./App.css";
 
@@ -41,6 +43,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trips/create"
+            element={
+              <ProtectedRoute>
+                <CreateTripPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trips/:id"
+            element={
+              <ProtectedRoute>
+                <TripDetailPage />
               </ProtectedRoute>
             }
           />
