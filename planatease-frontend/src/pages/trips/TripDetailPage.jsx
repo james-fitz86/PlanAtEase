@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getTrip, listTripMembers, deleteTrip } from "../../api/trips";
 import MemberCard from "../../components/trips/MemberCard";
+import Itinerary from "../../components/trips/Itinerary";
 
 function formatDate(dateStr) {
   if (!dateStr) return "-";
@@ -137,6 +138,9 @@ export default function TripDetailPage() {
                 refreshMembers={refreshMembers}
               />
             </div>
+            
+            <Itinerary start={trip.start_date} end={trip.end_date} />
+
           </div>
         </div>
 
