@@ -34,3 +34,10 @@ footer {
 #root, main, .container, .row {
   overflow: visible !important;
 }
+.chevron {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+.rotate-90 {
+  transform: rotate(90deg);
+}
