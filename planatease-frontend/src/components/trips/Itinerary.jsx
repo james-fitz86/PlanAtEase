@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 function getTripDays(start, end) {
   const days = [];
@@ -24,15 +24,34 @@ function DayLabel({ day }) {
   );
 }
 
-function ItineraryList({ days }) {
-  const [openSet, setOpenSet] = useState(() => new Set());
+function useLocalStorage(key, initialValue) {
+  const [value, setValue] = useState(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : initialValue;
+    } catch {
+      return initialValue;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+    }
+  }, [key, value]);
+
+  return [value, setValue];
+}
+
+function ItineraryList({ days, storageKey }) {
+  const [openArray, setOpenArray] = useLocalStorage(`${storageKey}:openSet`, []);
+  const openSet = useMemo(() => new Set(openArray), [openArray]);
 
   const toggle = (i) => {
-    setOpenSet(prev => {
-      const next = new Set(prev);
-      next.has(i) ? next.delete(i) : next.add(i);
-      return next;
-    });
+    const next = new Set(openSet);
+    next.has(i) ? next.delete(i) : next.add(i);
+    setOpenArray([...next]);
   };
 
   if (!days.length) return <p className="text-muted mb-0">No days.</p>;
@@ -64,8 +83,15 @@ function ItineraryList({ days }) {
   );
 }
 
-function ItineraryCarousel({ days }) {
-  const [idx, setIdx] = useState(0);
+function ItineraryCarousel({ days, storageKey }) {
+  const [idx, setIdx] = useLocalStorage(`${storageKey}:idx`, 0);
+
+  useEffect(() => {
+    if (idx >= days.length) {
+      setIdx(days.length ? days.length - 1 : 0);
+    }
+  }, [days.length, idx, setIdx]);
+
   if (!days.length) return <p className="text-muted mb-0">No days.</p>;
 
   const prev = () => setIdx((i) => (i - 1 + days.length) % days.length);
@@ -105,9 +131,12 @@ function ItineraryCarousel({ days }) {
   );
 }
 
-export default function Itinerary({ start, end }) {
+export default function Itinerary({ start, end, tripId }) {
   const days = useMemo(() => getTripDays(start, end), [start, end]);
-  const [view, setView] = useState("list");
+
+  const storageKey = `itinerary:${tripId || "default"}`;
+
+  const [view, setView] = useLocalStorage(`${storageKey}:view`, "list");;
 
   return (
     <div className="col-12">
@@ -136,9 +165,9 @@ export default function Itinerary({ start, end }) {
               </div>
 
               {view === "list" ? (
-                <ItineraryList days={days} />
+                <ItineraryList days={days} storageKey={storageKey} />
               ) : (
-                <ItineraryCarousel days={days} />
+                <ItineraryCarousel days={days} storageKey={storageKey} />
               )}
             </div>
           </div>
