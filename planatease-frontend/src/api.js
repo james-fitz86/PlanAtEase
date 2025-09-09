@@ -12,10 +12,12 @@ function getTokens() {
 
 function setTokens(tokens) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
+  window.dispatchEvent(new Event("auth-changed"));
 }
 
 export function clearTokens() {
   localStorage.removeItem(STORAGE_KEY);
+  window.dispatchEvent(new Event("auth-changed"));
 }
 
 
