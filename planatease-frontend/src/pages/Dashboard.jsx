@@ -31,13 +31,12 @@ export default function Dashboard() {
             <span>
               Welcome, <strong>{user.full_name || user.email}</strong>
             </span>
-            <div className="btn-group">
+            <div className="d-flex gap-2">
               <button
-                className="btn btn-outline-secondary btn-sm"
-                onClick={logout}
-              >
-                Log out
-              </button>
+                  className="btn btn-outline-secondary btn-sm"
+                >
+                  Profile
+                </button>
               <Link to="/trips/create" className="btn btn-primary btn-sm">
                 Create Trip
               </Link>
