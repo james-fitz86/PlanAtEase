@@ -139,7 +139,7 @@ export default function TripDetailPage() {
               />
             </div>
             
-            <Itinerary start={trip.start_date} end={trip.end_date} />
+            <Itinerary start={trip.start_date} end={trip.end_date} tripId={trip.id} />
 
           </div>
         </div>
