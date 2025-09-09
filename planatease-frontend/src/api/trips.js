@@ -1,4 +1,4 @@
-const RAW_API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL;
 const API_BASE = RAW_API_BASE.replace(/\/+$/, "");
 const TRIPS_BASE = `${API_BASE}/api/trips`;
 
