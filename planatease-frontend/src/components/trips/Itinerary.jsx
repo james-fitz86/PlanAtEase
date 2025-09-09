@@ -1,10 +1,21 @@
 import { useState, useMemo, useEffect } from "react";
 
+function parseISO(d) {
+  const dt = new Date(d);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
 function getTripDays(start, end) {
+  const s = parseISO(start);
+  const e = parseISO(end);
+  if (!s || !e) return [];
+
+  const [from, to] = s <= e ? [s, e] : [e, s];
+
   const days = [];
-  if (!start || !end) return days;
-  let cur = new Date(start);
-  const last = new Date(end);
+  let cur = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const last = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+
   while (cur <= last) {
     days.push(new Date(cur));
     cur.setDate(cur.getDate() + 1);
@@ -48,6 +59,13 @@ function ItineraryList({ days, storageKey }) {
   const [openArray, setOpenArray] = useLocalStorage(`${storageKey}:openSet`, []);
   const openSet = useMemo(() => new Set(openArray), [openArray]);
 
+  useEffect(() => {
+    const valid = openArray.filter((i) => i < days.length);
+    if (valid.length !== openArray.length) {
+      setOpenArray(valid);
+    }
+  }, [days.length, openArray, setOpenArray]);
+
   const toggle = (i) => {
     const next = new Set(openSet);
     next.has(i) ? next.delete(i) : next.add(i);
@@ -86,18 +104,20 @@ function ItineraryList({ days, storageKey }) {
 function ItineraryCarousel({ days, storageKey }) {
   const [idx, setIdx] = useLocalStorage(`${storageKey}:idx`, 0);
 
-  useEffect(() => {
-    if (idx >= days.length) {
-      setIdx(days.length ? days.length - 1 : 0);
-    }
-  }, [days.length, idx, setIdx]);
-
   if (!days.length) return <p className="text-muted mb-0">No days.</p>;
+
+  const safeIdx = Math.min(Math.max(Number.isFinite(idx) ? idx : 0, 0), days.length - 1);
+
+  useEffect(() => {
+    if (idx !== safeIdx) setIdx(safeIdx);
+  }, [idx, safeIdx, setIdx]);
+
+  
 
   const prev = () => setIdx((i) => (i - 1 + days.length) % days.length);
   const next = () => setIdx((i) => (i + 1) % days.length);
 
-  const day = days[idx];
+  const day = days[safeIdx];
   const key = day.toISOString().slice(0, 10);
 
   return (
@@ -125,16 +145,18 @@ function ItineraryCarousel({ days, storageKey }) {
         <p className="text-muted small mb-0">Activities for this day go here...</p>
       </div>
       <div className="px-3 py-2 text-center text-muted small border-top">
-        Day {idx + 1} of {days.length}
+        Day {safeIdx + 1} of {days.length}
       </div>
     </div>
   );
 }
 
 export default function Itinerary({ start, end, tripId }) {
+  if (!tripId) return null;
+
   const days = useMemo(() => getTripDays(start, end), [start, end]);
 
-  const storageKey = `itinerary:${tripId || "default"}`;
+  const storageKey = `itinerary:${tripId}`;
 
   const [view, setView] = useLocalStorage(`${storageKey}:view`, "list");;
 
