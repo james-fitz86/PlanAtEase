@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, NotFound
 from django.shortcuts import get_object_or_404
 
-from .models import Trip, TripMember
-from .serializers import TripSerializer, TripMemberSerializer, TripMemberCreateSerializer
+from .models import Trip, TripMember, TripItem
+from .serializers import TripSerializer, TripMemberSerializer, TripMemberCreateSerializer, TripItemSerializer, TripItemCreateSerializer
 from .permissions import IsTripOwnerOrMemberReadOnly
 # Create your views here.
 
@@ -92,3 +92,60 @@ class TripMemberDestroyView(generics.DestroyAPIView):
 
         member.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class TripItemListCreateView(generics.ListCreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def dispatch(self, request, *args, **kwargs):
+        self.trip = get_object_or_404(Trip, pk=self.kwargs["trip_id"])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        u = self.request.user
+        if not (self.trip.owner_id == u.id or self.trip.members.filter(user=u).exists()):
+            raise PermissionDenied("You do not have access to this trip.")
+        return TripItem.objects.filter(trip=self.trip).order_by("date", "start_time")
+
+    def get_serializer_class(self):
+        return TripItemCreateSerializer if self.request.method == "POST" else TripItemSerializer
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["trip"] = self.trip
+        return ctx
+
+    def perform_create(self, serializer):
+        u = self.request.user
+        
+        if not (self.trip.owner_id == u.id or self.trip.members.filter(user=u, role="editor").exists()):
+            raise PermissionDenied("You do not have permission to add trip items.")
+        serializer.save()
+
+
+class TripItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = TripItemSerializer
+    lookup_url_kwarg = "item_id"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.trip = get_object_or_404(Trip, pk=self.kwargs["trip_id"])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        u = self.request.user
+        if not (self.trip.owner_id == u.id or self.trip.members.filter(user=u).exists()):
+            raise PermissionDenied("You do not have access to this trip.")
+        return TripItem.objects.filter(trip=self.trip)
+
+    def perform_update(self, serializer):
+        u = self.request.user
+        if not (self.trip.owner_id == u.id or self.trip.members.filter(user=u, role="editor").exists()):
+            raise PermissionDenied("You do not have permission to edit trip items.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        u = self.request.user
+        if not (self.trip.owner_id == u.id or self.trip.members.filter(user=u, role="editor").exists()):
+            raise PermissionDenied("You do not have permission to delete trip items.")
+        instance.delete()
