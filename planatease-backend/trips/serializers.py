@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Trip, TripMember
+from .models import Trip, TripMember, TripItem
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -75,3 +75,103 @@ class TripMemberCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return TripMember.objects.create(**validated_data)
+    
+class TripItemSerializer(serializers.ModelSerializer):
+    trip_id = serializers.IntegerField(source="trip.id", read_only=True)
+    created_by_id = serializers.IntegerField(source="created_by.id", read_only=True)
+    created_by_email = serializers.EmailField(source="created_by.email", read_only=True)
+    item_type_label = serializers.CharField(source="get_item_type_display", read_only=True)
+
+    class Meta:
+        model = TripItem
+        read_only_fields = [
+            "id", "trip", "created_by", "created_at", "updated_at",
+            "trip_id", "created_by_id", "created_by_email", "item_type_label"
+        ]
+        fields = [
+            "id", "trip_id", "created_by_id", "created_by_email",
+            "item_type", "item_type_label",
+            "date", "start_time", "end_time",
+            "place_id", "place_name", "formatted_address",
+            "lat", "lng",
+            "title", "description", "raw_place",
+            "created_at", "updated_at",
+        ]
+
+    def validate(self, attrs):
+        trip: Trip = self.context.get("trip")
+        request = self.context.get("request")
+
+        if trip and not attrs.get("trip"):
+            attrs["trip"] = trip
+
+        if trip and "date" in attrs:
+            date = attrs["date"]
+            if date < trip.start_date or date > trip.end_date:
+                raise serializers.ValidationError({
+                    "date": "Item date must be within trip start/end dates."
+                })
+
+        if attrs.get("end_time") and attrs["end_time"] <= attrs["start_time"]:
+            raise serializers.ValidationError({
+                "end_time": "End time must be after start time."
+            })
+
+        return attrs
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            validated_data["created_by"] = request.user
+        return super().create(validated_data)
+
+class TripItemCreateSerializer(serializers.ModelSerializer):
+   
+    place = serializers.JSONField(write_only=True, help_text="Google Places object")
+    item_type_label = serializers.CharField(source="get_item_type_display", read_only=True)
+
+    class Meta:
+        model = TripItem
+        fields = [
+            "id", "item_type", "item_type_label",
+            "date", "start_time", "end_time",
+            "title", "description",
+            "place",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at", "item_type_label"]
+
+    def validate(self, attrs):
+        trip: Trip = self.context.get("trip")
+
+        if trip and "date" in attrs:
+            date = attrs["date"]
+            if date < trip.start_date or date > trip.end_date:
+                raise serializers.ValidationError({
+                    "date": "Item date must be within trip start/end dates."
+                })
+
+        if attrs.get("end_time") and attrs["end_time"] <= attrs["start_time"]:
+            raise serializers.ValidationError({
+                "end_time": "End time must be after start time."
+            })
+
+        return attrs
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        trip: Trip = self.context["trip"]
+
+        place = validated_data.pop("place", {})
+        validated_data.update({
+            "trip": trip,
+            "created_by": request.user if request and request.user.is_authenticated else None,
+            "place_id": place.get("place_id") or place.get("id", ""),
+            "place_name": place.get("name", ""),
+            "formatted_address": place.get("formatted_address", ""),
+            "lat": place.get("geometry", {}).get("location", {}).get("lat"),
+            "lng": place.get("geometry", {}).get("location", {}).get("lng"),
+            "raw_place": place,
+        })
+
+        return TripItem.objects.create(**validated_data)
