@@ -71,7 +71,7 @@ export default function CreateTripPage() {
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 className="form-control"
-                placeholder="e.g., Milan City Break"
+                placeholder="e.g. Milan City Break"
               />
             </div>
 
