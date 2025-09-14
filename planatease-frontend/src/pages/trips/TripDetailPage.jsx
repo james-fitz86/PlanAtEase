@@ -112,15 +112,25 @@ export default function TripDetailPage() {
                 Back to Dashboard
               </Link>
                 {trip.is_owner && (
-                  <button
-                    type="button"
-                    className="btn btn-outline-danger btn-sm"
-                    onClick={handleDelete}
-                    disabled={deleting}
-                    title="Delete trip"
-                  >
-                    {deleting ? "Deleting…" : "Delete"}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => navigate(`/trips/${trip.id}/edit`)}
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger btn-sm"
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      title="Delete trip"
+                    >
+                      {deleting ? "Deleting…" : "Delete"}
+                    </button>
+                  </>
                 )}
             </div>
           </div>
