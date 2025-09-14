@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { getTrip, listTripMembers, deleteTrip } from "../../api/trips";
 import MemberCard from "../../components/trips/MemberCard";
 import Itinerary from "../../components/trips/Itinerary";
+import CreateTripItem from "../../components/trips/CreateTripItem";
+import PageContainer from "../../components/base/PageContainer";
 
 function formatDate(dateStr) {
   if (!dateStr) return "-";
@@ -33,6 +35,7 @@ export default function TripDetailPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [itemsVersion, setItemsVersion] = useState(0);
 
   async function refreshMembers() {
     try {
@@ -41,6 +44,10 @@ export default function TripDetailPage() {
     } catch (e) {
       console.error("Failed to refresh members", e);
     }
+  }
+
+  function refreshItems() {
+    setItemsVersion((v) => v + 1);
   }
 
   useEffect(() => {
@@ -88,7 +95,7 @@ export default function TripDetailPage() {
   }
 
   return (
-    <div className="container my-4">
+    <PageContainer className="my-3">
       <header className="d-flex justify-content-between align-items-center mb-4">
           <div>
           <h1 className="h4 mb-1">{tripTitle(trip)}</h1>
@@ -112,7 +119,7 @@ export default function TripDetailPage() {
           )}
       </header>
 
-      <div className="row">
+      <div className="row g-2 g-md-4">
         <div className="col-12 col-md-7 col-lg-7">
           <div className="row g-4">
             <div className="col-12 col-md-12">
@@ -135,11 +142,26 @@ export default function TripDetailPage() {
                 members={members}
                 canManage={!!trip?.is_owner}
                 tripOwnerId={trip?.owner_id}
+                ownerEmail={trip.owner_email}
                 refreshMembers={refreshMembers}
               />
             </div>
+
+            <div className="col-12">
+              <CreateTripItem
+                tripId={trip.id}
+                tripStart={trip.start_date}
+                tripEnd={trip.end_date}
+                onCreated={refreshItems}
+              />
+            </div>
             
-            <Itinerary start={trip.start_date} end={trip.end_date} tripId={trip.id} />
+            <Itinerary
+              start={trip.start_date}
+              end={trip.end_date}
+              tripId={trip.id}
+              refreshTick={itemsVersion}
+            />
 
           </div>
         </div>
@@ -162,6 +184,6 @@ export default function TripDetailPage() {
           </div>
         </aside>
       </div>
-    </div>
+    </PageContainer>
   );
 }
