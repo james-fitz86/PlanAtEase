@@ -1,13 +1,26 @@
 import { useState, useMemo, useEffect } from "react";
+import { listTripItems } from "../../api/trips";
 
-function parseISO(d) {
+
+function parseLocalDate(d) {
+  if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+    const [y, m, day] = d.split("-").map(Number);
+    return new Date(y, m - 1, day);
+  }
   const dt = new Date(d);
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
+function ymdLocal(dateObj) {
+  const y = dateObj.getFullYear();
+  const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const d = String(dateObj.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 function getTripDays(start, end) {
-  const s = parseISO(start);
-  const e = parseISO(end);
+  const s = parseLocalDate(start);
+  const e = parseLocalDate(end);
   if (!s || !e) return [];
 
   const [from, to] = s <= e ? [s, e] : [e, s];
@@ -48,14 +61,57 @@ function useLocalStorage(key, initialValue) {
   useEffect(() => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
-    } catch {
-    }
+    } catch {}
   }, [key, value]);
 
   return [value, setValue];
 }
 
-function ItineraryList({ days, storageKey }) {
+function formatTime(t) {
+  if (!t) return "";
+  return t.slice(0, 5);
+}
+
+
+function ItemRow({ it }) {
+  const time =
+    it.start_time && it.end_time
+      ? `${formatTime(it.start_time)}–${formatTime(it.end_time)}`
+      : it.start_time
+      ? `${formatTime(it.start_time)}`
+      : "";
+
+  const label = it.item_type_label || it.item_type;
+  const title = it.title?.trim() || it.place_name;
+
+  const labelColors = {
+    Flight: "bg-flight",
+    Accommodation: "bg-accommodation",
+    Restaurant: "bg-restaurant",
+    Transport: "bg-transport",
+    Activity: "bg-activity",
+    Sightseeing: "bg-sightseeing"
+  };
+
+  return (
+    <div className="d-flex align-items-start gap-3 py-1">
+      <span
+        className={`badge text-wrap fixed-label ${labelColors[label] || "bg-secondary"}`}
+      >
+        {label}
+      </span>
+      <div className="flex-grow-1">
+        <div className="d-flex justify-content-between">
+          <strong>{title}</strong>
+          {time && <small className="text-muted">{time}</small>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function ItineraryList({ days, itemsByDate, storageKey }) {
   const [openArray, setOpenArray] = useLocalStorage(`${storageKey}:openSet`, []);
   const openSet = useMemo(() => new Set(openArray), [openArray]);
 
@@ -77,7 +133,8 @@ function ItineraryList({ days, storageKey }) {
   return (
     <>
       {days.map((day, i) => {
-        const key = day.toISOString().slice(0, 10);
+        const key = ymdLocal(day);
+        const items = itemsByDate.get(key) || [];
         const isOpen = openSet.has(i);
         return (
           <div key={key} className="mb-3 border rounded">
@@ -91,7 +148,11 @@ function ItineraryList({ days, storageKey }) {
             </button>
             {isOpen && (
               <div className="p-2 border-top text-start">
-                <p className="text-muted small mb-0">Activities go here...</p>
+                {items.length === 0 ? (
+                  <p className="text-muted small mb-0">No items for this day.</p>
+                ) : (
+                  items.map((it) => <ItemRow key={it.id} it={it} />)
+                )}
               </div>
             )}
           </div>
@@ -101,7 +162,8 @@ function ItineraryList({ days, storageKey }) {
   );
 }
 
-function ItineraryCarousel({ days, storageKey }) {
+
+function ItineraryCarousel({ days, itemsByDate, storageKey }) {
   const [idx, setIdx] = useLocalStorage(`${storageKey}:idx`, 0);
 
   if (!days.length) return <p className="text-muted mb-0">No days.</p>;
@@ -112,13 +174,12 @@ function ItineraryCarousel({ days, storageKey }) {
     if (idx !== safeIdx) setIdx(safeIdx);
   }, [idx, safeIdx, setIdx]);
 
-  
-
   const prev = () => setIdx((i) => (i - 1 + days.length) % days.length);
   const next = () => setIdx((i) => (i + 1) % days.length);
 
   const day = days[safeIdx];
-  const key = day.toISOString().slice(0, 10);
+  const key = ymdLocal(day);
+  const items = itemsByDate.get(key) || [];
 
   return (
     <div className="border rounded">
@@ -142,7 +203,11 @@ function ItineraryCarousel({ days, storageKey }) {
         </button>
       </div>
       <div key={key} className="p-3 text-start">
-        <p className="text-muted small mb-0">Activities for this day go here...</p>
+        {items.length === 0 ? (
+          <p className="text-muted small mb-0">No items for this day.</p>
+        ) : (
+          items.map((it) => <ItemRow key={it.id} it={it} />)
+        )}
       </div>
       <div className="px-3 py-2 text-center text-muted small border-top">
         Day {safeIdx + 1} of {days.length}
@@ -151,14 +216,64 @@ function ItineraryCarousel({ days, storageKey }) {
   );
 }
 
-export default function Itinerary({ start, end, tripId }) {
+
+export default function Itinerary({ start, end, tripId, refreshTick = 0 }) {
   if (!tripId) return null;
 
   const days = useMemo(() => getTripDays(start, end), [start, end]);
-
   const storageKey = `itinerary:${tripId}`;
+  const [view, setView] = useLocalStorage(`${storageKey}:view`, "list");
 
-  const [view, setView] = useLocalStorage(`${storageKey}:view`, "list");;
+  const [itemsByDate, setItemsByDate] = useState(() => new Map());
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        setErr("");
+        const data = await listTripItems(tripId);
+        const items = Array.isArray(data?.results) ? data.results : data || [];
+
+        const map = new Map();
+        for (const it of items) {
+          const d = it.date;
+          if (!d) continue;
+          if (!map.has(d)) map.set(d, []);
+          map.get(d).push(it);
+        }
+
+        for (const [k, arr] of map) {
+          arr.sort((a, b) => {
+            const at = a.start_time || "";
+            const bt = b.start_time || "";
+            if (at < bt) return -1;
+            if (at > bt) return 1;
+            const ai = a.item_type || "";
+            const bi = b.item_type || "";
+            if (ai < bi) return -1;
+            if (ai > bi) return 1;
+            const ap = (a.place_name || "").toLowerCase();
+            const bp = (b.place_name || "").toLowerCase();
+            if (ap < bp) return -1;
+            if (ap > bp) return 1;
+            return 0;
+          });
+        }
+
+        if (alive) setItemsByDate(map);
+      } catch (e) {
+        if (alive) setErr(e.body?.detail || e.message || "Failed to load trip items");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [tripId, refreshTick]);
 
   return (
     <div className="col-12">
@@ -186,10 +301,17 @@ export default function Itinerary({ start, end, tripId }) {
                 </div>
               </div>
 
-              {view === "list" ? (
-                <ItineraryList days={days} storageKey={storageKey} />
+              {loading ? (
+                <div className="d-flex align-items-center gap-2">
+                  <div className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
+                  <span className="text-muted">Loading items…</span>
+                </div>
+              ) : err ? (
+                <div className="alert alert-warning mb-0">{err}</div>
+              ) : view === "list" ? (
+                <ItineraryList days={days} itemsByDate={itemsByDate} storageKey={storageKey} />
               ) : (
-                <ItineraryCarousel days={days} storageKey={storageKey} />
+                <ItineraryCarousel days={days} itemsByDate={itemsByDate} storageKey={storageKey} />
               )}
             </div>
           </div>
