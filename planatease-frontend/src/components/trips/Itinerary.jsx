@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { listTripItems } from "../../api/trips";
+import { listTripItems, deleteTripItem } from "../../api/trips";
 
 
 function parseLocalDate(d) {
@@ -73,7 +73,7 @@ function formatTime(t) {
 }
 
 
-function ItemRow({ it }) {
+function ItemRow({ it, onDeleted }) {
   const rowKey = `itemrow:${it.trip_id ?? "trip"}:${it.id}`;
   const [open, setOpen] = useLocalStorage(rowKey, false);
 
@@ -99,6 +99,23 @@ function ItemRow({ it }) {
     Sightseeing: "bg-sightseeing"
   };
 
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDeleteItem() {
+  if (deleting) return;
+  const ok = window.confirm("Delete this item? This cannot be undone.");
+  if (!ok) return;
+
+  try {
+    setDeleting(true);
+    await deleteTripItem(it.trip_id, it.id);
+    onDeleted?.(it.id);
+  } catch (e) {
+    alert(e.body?.detail || e.message || "Failed to delete item");
+    setDeleting(false);
+  }
+}
+
   return (
     <div className="d-flex align-items-start gap-3 py-1">
       <span
@@ -123,8 +140,28 @@ function ItemRow({ it }) {
             </button>
           </div>
         </div>
-        {open && description && (
-          <div className="mt-1 text-muted small">{description}</div>
+        {open && (
+          <div className="mt-1 text-muted small">
+            {description && <p className="mb-2">{description}</p>}
+
+            <div className="d-flex gap-2">
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-primary"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-danger btn-sm"
+                onClick={handleDeleteItem}
+                disabled={deleting}
+                title="Delete item"
+              >
+                {deleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -132,7 +169,7 @@ function ItemRow({ it }) {
 }
 
 
-function ItineraryList({ days, itemsByDate, storageKey }) {
+function ItineraryList({ days, itemsByDate, storageKey, onItemDeleted }) {
   const [openArray, setOpenArray] = useLocalStorage(`${storageKey}:openSet`, []);
   const openSet = useMemo(() => new Set(openArray), [openArray]);
 
@@ -172,7 +209,13 @@ function ItineraryList({ days, itemsByDate, storageKey }) {
                 {items.length === 0 ? (
                   <p className="text-muted small mb-0">No items for this day.</p>
                 ) : (
-                  items.map((it) => <ItemRow key={it.id} it={it} />)
+                  items.map((it) => (
+                    <ItemRow
+                      key={it.id}
+                      it={it}
+                      onDeleted={(id) => onItemDeleted(key, id)}
+                    />
+                  ))
                 )}
               </div>
             )}
@@ -184,7 +227,7 @@ function ItineraryList({ days, itemsByDate, storageKey }) {
 }
 
 
-function ItineraryCarousel({ days, itemsByDate, storageKey }) {
+function ItineraryCarousel({ days, itemsByDate, storageKey, onItemDeleted }) {
   const [idx, setIdx] = useLocalStorage(`${storageKey}:idx`, 0);
 
   if (!days.length) return <p className="text-muted mb-0">No days.</p>;
@@ -227,7 +270,13 @@ function ItineraryCarousel({ days, itemsByDate, storageKey }) {
         {items.length === 0 ? (
           <p className="text-muted small mb-0">No items for this day.</p>
         ) : (
-          items.map((it) => <ItemRow key={it.id} it={it} />)
+          items.map((it) => (
+            <ItemRow
+              key={it.id}
+              it={it}
+              onDeleted={(id) => onItemDeleted(key, id)}
+            />
+          ))
         )}
       </div>
       <div className="px-3 py-2 text-center text-muted small border-top">
@@ -248,6 +297,15 @@ export default function Itinerary({ start, end, tripId, refreshTick = 0 }) {
   const [itemsByDate, setItemsByDate] = useState(() => new Map());
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+
+  const handleItemDeleted = (dateKey, itemId) => {
+    setItemsByDate((prev) => {
+      const next = new Map(prev);
+      const arr = next.get(dateKey) || [];
+      next.set(dateKey, arr.filter((x) => x.id !== itemId));
+      return next;
+    });
+  };
 
   useEffect(() => {
     let alive = true;
@@ -330,9 +388,9 @@ export default function Itinerary({ start, end, tripId, refreshTick = 0 }) {
               ) : err ? (
                 <div className="alert alert-warning mb-0">{err}</div>
               ) : view === "list" ? (
-                <ItineraryList days={days} itemsByDate={itemsByDate} storageKey={storageKey} />
+                <ItineraryList days={days} itemsByDate={itemsByDate} storageKey={storageKey} onItemDeleted={handleItemDeleted} />
               ) : (
-                <ItineraryCarousel days={days} itemsByDate={itemsByDate} storageKey={storageKey} />
+                <ItineraryCarousel days={days} itemsByDate={itemsByDate} storageKey={storageKey} onItemDeleted={handleItemDeleted} />
               )}
             </div>
           </div>
