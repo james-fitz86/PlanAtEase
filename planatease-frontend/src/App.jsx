@@ -11,6 +11,7 @@ import ForgotPassword from "./pages/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
 import CreateTripPage from "./pages/trips/CreateTripPage.jsx";
 import TripDetailPage from "./pages/trips/TripDetailPage.jsx";
+import TripEditPage from "./pages/trips/TripEditPage.jsx";
 
 import "./App.css";
 
@@ -59,6 +60,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <TripDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trips/:id/edit"
+            element={
+              <ProtectedRoute>
+                <TripEditPage />
               </ProtectedRoute>
             }
           />
