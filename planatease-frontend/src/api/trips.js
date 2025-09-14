@@ -83,3 +83,23 @@ export function addTripMember(tripId, payload) {
 export function removeTripMember(tripId, userId) {
   return http("DELETE", url(`/${tripId}/members/${userId}`));
 }
+
+export function listTripItems(tripId) {
+  return http("GET", url(`/${tripId}/items`));
+}
+
+export function getTripItem(tripId, itemId) {
+  return http("GET", url(`/${tripId}/items/${itemId}`));
+}
+
+export function createTripItem(tripId, payload) {
+  return http("POST", url(`/${tripId}/items`), payload);
+}
+
+export function updateTripItem(tripId, itemId, partial) {
+  return http("PATCH", url(`/${tripId}/items/${itemId}`), partial);
+}
+
+export function deleteTripItem(tripId, itemId) {
+  return http("DELETE", url(`/${tripId}/items/${itemId}`));
+}
