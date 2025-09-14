@@ -5,6 +5,7 @@ import MemberCard from "../../components/trips/MemberCard";
 import Itinerary from "../../components/trips/Itinerary";
 import CreateTripItem from "../../components/trips/CreateTripItem";
 import PageContainer from "../../components/base/PageContainer";
+import { countryNameFromCode } from "../../utils/geo";
 
 function formatDate(dateStr) {
   if (!dateStr) return "-";
@@ -96,45 +97,38 @@ export default function TripDetailPage() {
 
   return (
     <PageContainer className="my-3">
-      <header className="d-flex justify-content-between align-items-center mb-4">
-          <div>
-          <h1 className="h4 mb-1">{tripTitle(trip)}</h1>
-          <p className="text-muted small mb-0">
-              {formatDate(trip.start_date)} → {formatDate(trip.end_date)}
-          </p>
+      <header className="mb-4">
+          <div className="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3">
+            <div className="text-center flex-grow-1">
+              <h1 className="h4 mb-1">{tripTitle(trip)}</h1>
+              <p className="text-muted small mb-0">
+                  {formatDate(trip.start_date)} → {formatDate(trip.end_date)}
+              </p>
+              <p>{trip.city_name || "-"}, {countryNameFromCode(trip?.country_code)}</p>
+            </div>
+            
+            <div className="d-flex flex-column flex-sm-row gap-2">
+              <Link to="/dashboard" className="btn btn-outline-secondary btn-sm">
+                Back to Dashboard
+              </Link>
+                {trip.is_owner && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger btn-sm"
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    title="Delete trip"
+                  >
+                    {deleting ? "Deleting…" : "Delete"}
+                  </button>
+                )}
+            </div>
           </div>
-          <Link to="/dashboard" className="btn btn-outline-secondary btn-sm">
-          Back to Dashboard
-          </Link>
-          {trip.is_owner && (
-            <button
-              type="button"
-              className="btn btn-outline-danger btn-sm"
-              onClick={handleDelete}
-              disabled={deleting}
-              title="Delete trip"
-            >
-              {deleting ? "Deleting…" : "Delete"}
-            </button>
-          )}
       </header>
 
       <div className="row g-2 g-md-4">
         <div className="col-12 col-md-7 col-lg-7">
           <div className="row g-4">
-            <div className="col-12 col-md-12">
-              <div className="card h-100">
-                <div className="card-body">
-                  <h5 className="card-title mb-3">Location</h5>
-                  <dl className="row mb-0 small">
-                    <dt className="col-4 text-muted">City</dt>
-                    <dd className="col-8">{trip.city_name || "-"}</dd>
-                    <dt className="col-4 text-muted">Country</dt>
-                    <dd className="col-8">{trip.country_code || "-"}</dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
 
             <div className="col-12">
               <MemberCard
