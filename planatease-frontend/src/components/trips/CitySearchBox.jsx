@@ -4,11 +4,12 @@ export default function CitySearchBox({
   onSelect,
   placeholder = "Search for a city…",
   defaultValue = "",
+  initialText = "",
   disabled = false,
 }) {
   const inputRef = useRef(null);
   const autocompleteRef = useRef(null);
-  const [value, setValue] = useState(defaultValue);
+  const [value, setValue] = useState(defaultValue || initialText);
   const [selected, setSelected] = useState(false);
 
   
@@ -28,6 +29,13 @@ export default function CitySearchBox({
 
     return locality?.long_name || place.name || "";
   };
+
+  useEffect(() => {
+    if (initialText) {
+      setValue(initialText);
+      setSelected(true);
+    }
+  }, [initialText]);
 
   useEffect(() => {
     if (!window.google?.maps?.places || !inputRef.current) return;
