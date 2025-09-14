@@ -14,7 +14,7 @@ h1 {
   text-align: center;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: clamp(0.05rem, 2vw, 2rem);
   background-color: #fdfdfd;
 }
 main {
@@ -40,4 +40,119 @@ footer {
 }
 .rotate-90 {
   transform: rotate(90deg);
+}
+.btn-flight {
+  background-color: #1e90ff;
+  color: #fff;
+  border: 1px solid #1e90ff;
+}
+.btn-flight:hover {
+  background-color: #fff;
+  color: #1e90ff;
+  border: 1px solid #1e90ff;
+}
+.btn-accommodation {
+  background-color: #20b2aa;
+  color: #fff;
+  border: 1px solid #20b2aa;
+}
+.btn-accommodation:hover {
+  background-color: #fff;
+  color: #20b2aa;
+  border: 1px solid #20b2aa;
+}
+.btn-restaurant {
+  background-color: #dc143c;
+  color: #fff;
+  border: 1px solid #dc143c;
+}
+.btn-restaurant:hover {
+  background-color: #fff;
+  color: #dc143c;
+  border: 1px solid #dc143c;
+}
+.btn-transport {
+  background-color: #ff8c00;
+  color: #fff;
+  border: 1px solid #ff8c00;
+}
+.btn-transport:hover {
+  background-color: #fff;
+  color: #ff8c00;
+  border: 1px solid #ff8c00;
+}
+.btn-activity {
+  background-color: #228b22;
+  color: #fff;
+  border: 1px solid #228b22;
+}
+.btn-activity:hover {
+  background-color: #fff;
+  color: #228b22;
+  border: 1px solid #228b22;
+}
+.btn-sightseeing {
+  background-color: #6a5acd;
+  color: #fff;
+  border: 1px solid #6a5acd;
+}
+.btn-sightseeing:hover {
+  background-color: #fff;
+  color: #6a5acd;
+  border: 1px solid #6a5acd;
+}
+.bg-flight {
+  background-color: #1e90ff !important;
+  color: #fff !important;
+}
+.bg-accommodation {
+  background-color: #20b2aa !important;
+  color: #fff !important;
+}
+.bg-restaurant {
+  background-color: #dc143c !important;
+  color: #fff !important;
+}
+.bg-transport {
+  background-color: #ff8c00 !important;
+  color: #fff !important;
+}
+.bg-activity {
+  background-color: #228b22 !important;
+  color: #fff !important;
+}
+.bg-sightseeing {
+  background-color: #6a5acd !important;
+  color: #fff !important;
+}
+.trip-button {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  white-space: nowrap;
+}
+
+
+@media (min-width: 576px) {
+  .trip-button {
+    width: 120px;
+  }
+}
+.fixed-label {
+  display: inline-block;
+  width: 120px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.card {
+  --bs-card-spacer-y: .5rem;
+  --bs-card-spacer-x: .15rem;
+}
+
+@media (min-width: 576px) {
+  .card {
+    --bs-card-spacer-y: 1rem;
+    --bs-card-spacer-x: 1rem;
+  }
 }
