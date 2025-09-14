@@ -23,6 +23,7 @@ export default function MembersCard({
   members,
   canManage,
   tripOwnerId,
+  ownerEmail,
   refreshMembers,
 }) {
   const [form, setForm] = useState({ email: "", role: "viewer" });
@@ -32,6 +33,7 @@ export default function MembersCard({
   const navigate = useNavigate();
   const meId = currentUserIdFromJWT();
   const ownerIdNum = tripOwnerId == null ? null : Number(tripOwnerId);
+  const isMeOwner = meId != null && ownerIdNum != null && meId === ownerIdNum;
 
   async function handleAdd(e) {
     e.preventDefault();
@@ -87,7 +89,7 @@ export default function MembersCard({
               data-bs-toggle="modal"
               data-bs-target="#addMemberModal"
             >
-              Add member
+              Send Invite
             </button>
           )}
         </div>
@@ -96,6 +98,17 @@ export default function MembersCard({
           <p className="text-muted small mb-0">Only you (owner).</p>
         ) : (
           <ul className="list-unstyled small mb-0">
+            {ownerEmail && (
+              <li className="d-flex justify-content-between py-1" key="owner-row">
+                <span>
+                  {ownerEmail}
+                  {isMeOwner && <span className="ms-2 badge bg-secondary">You</span>}
+                </span>
+                <span className="text-muted d-flex gap-2 align-items-center">
+                  owner
+                </span>
+              </li>
+            )}
             {members.map((m) => {
               const uid = getUid(m);
               const isMe = meId != null && uid != null && uid === meId;
@@ -144,7 +157,7 @@ export default function MembersCard({
             </div>
             <div className="modal-body">
               <div className="mb-3">
-                <label className="form-label">Member email</label>
+                <label className="form-label">Email Address</label>
                 <input
                   type="email"
                   className="form-control"
