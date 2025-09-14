@@ -74,6 +74,11 @@ function formatTime(t) {
 
 
 function ItemRow({ it }) {
+  const rowKey = `itemrow:${it.trip_id ?? "trip"}:${it.id}`;
+  const [open, setOpen] = useLocalStorage(rowKey, false);
+
+  const toggle = () => setOpen((v) => !v);
+
   const time =
     it.start_time && it.end_time
       ? `${formatTime(it.start_time)}–${formatTime(it.end_time)}`
@@ -83,6 +88,7 @@ function ItemRow({ it }) {
 
   const label = it.item_type_label || it.item_type;
   const title = it.title?.trim() || it.place_name;
+  const description = it.description
 
   const labelColors = {
     Flight: "bg-flight",
@@ -100,11 +106,26 @@ function ItemRow({ it }) {
       >
         {label}
       </span>
+
       <div className="flex-grow-1">
-        <div className="d-flex justify-content-between">
+        <div className="d-flex justify-content-between align-items-center">
           <strong>{title}</strong>
-          {time && <small className="text-muted">{time}</small>}
+          <div className="d-flex align-items-center gap-2">
+            {time && <small className="text-muted">{time}</small>}
+            <button
+              type="button"
+              className="btn btn-sm btn-light p-0 px-2"
+              onClick={toggle}
+              aria-expanded={open}
+              aria-label={open ? "Collapse details" : "Expand details"}
+            >
+              {open ? "−" : "+"}
+            </button>
+          </div>
         </div>
+        {open && description && (
+          <div className="mt-1 text-muted small">{description}</div>
+        )}
       </div>
     </div>
   );
