@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import PlaceSearchBox from "./PlaceSearchBox";
-import { createTripItem } from "../../api/trips";
+import { createTripItem, updateTripItem } from "../../api/trips";
 
 const ITEM_TYPE_MAP = {
     Flight: "flight",
@@ -69,11 +69,14 @@ const toDateOnly = (s) => (s ? String(s).slice(0, 10) : undefined);
 
 export default function TripItemModal({
     modalId,
+    mode = "create",
+    item = null,  
     selectedTypeLabel,
     tripId,
     tripStart,
     tripEnd,
     onCreated,
+    onSaved,
     }) {
     
     const modalElRef = useRef(null);
@@ -87,7 +90,7 @@ export default function TripItemModal({
 
     const [placeQueryText, setPlaceQueryText] = useState("");
 
-    const [form, setForm] = useState({
+      const emptyForm = {
         title: "",
         description: "",
         date: "",
@@ -99,10 +102,37 @@ export default function TripItemModal({
         lat: null,
         lng: null,
         raw_place: null,
-    });
+    };
 
+    const [form, setForm] = useState(emptyForm);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
+
+    useEffect(() => {
+        if (mode !== "edit") {
+        setForm(emptyForm);
+        setPlaceQueryText("");
+        return;
+        }
+        if (!item) return;
+
+        const prefilled = {
+        title: item.title || "",
+        description: item.description || "",
+        date: toDateOnly(item.date) || "",
+        start_time: item.start_time || "",
+        end_time: item.end_time || "",
+        place_id: item.place_id || "",
+        place_name: item.place_name || "",
+        formatted_address: item.formatted_address || "",
+        lat: item.lat ?? null,
+        lng: item.lng ?? null,
+        raw_place: item.raw_place || null,
+        };
+
+        setForm(prefilled);
+        setPlaceQueryText(prefilled.place_name || prefilled.formatted_address || "");
+    }, [mode, item]);
 
     const canSubmit = useMemo(() => {
         return (
@@ -126,19 +156,8 @@ export default function TripItemModal({
     };
 
     const resetForm = () => {
-        setForm({
-        title: "",
-        description: "",
-        date: "",
-        start_time: "",
-        end_time: "",
-        place_id: "",
-        place_name: "",
-        formatted_address: "",
-        lat: null,
-        lng: null,
-        raw_place: null,
-        });
+        setForm(emptyForm);
+        setPlaceQueryText("");
         setError("");
     };
 
@@ -160,38 +179,43 @@ export default function TripItemModal({
         if (!canSubmit) return;
 
         try {
-        setSubmitting(true);
-        setError("");
+            setSubmitting(true);
+            setError("");
 
-        const payload = {
-            item_type: ITEM_TYPE_MAP[selectedTypeLabel] ?? "other",
-            date: form.date,
-            start_time: form.start_time,
-            end_time: form.end_time || null,
-            title: form.title?.trim() || "",
-            description: form.description?.trim() || "",
-            place: makeBackendPlaceJSON(),
-        };
+            const payload = {
+                item_type: ITEM_TYPE_MAP[selectedTypeLabel] ?? "other",
+                date: form.date,
+                start_time: form.start_time,
+                end_time: form.end_time || null,
+                title: form.title?.trim() || "",
+                description: form.description?.trim() || "",
+                place: makeBackendPlaceJSON(),
+            };
 
-        console.log("POSTING date:", payload.date);
+            if (mode === "edit" && item?.id) {
+                const updated = await updateTripItem(tripId, item.id, payload);
+                onSaved?.(updated);
+            } else {
+                const created = await createTripItem(tripId, payload);
+                onCreated?.(created);
+                resetForm();
+            }
 
-        const created = await createTripItem(tripId, payload);
-        onCreated?.(created);
-        hideModal();
-        resetForm();
+            hideModal();
         } catch (err) {
-        const msg =
-            err.body?.detail ||
-            err.body?.non_field_errors?.[0] ||
-            err.body?.date?.[0] ||
-            err.body?.end_time?.[0] ||
-            err.message ||
-            "Failed to create trip item";
-        setError(msg);
+            const msg =
+                err.body?.detail ||
+                err.body?.non_field_errors?.[0] ||
+                err.body?.date?.[0] ||
+                err.body?.end_time?.[0] ||
+                err.message ||
+                (mode === "edit" ? "Failed to update trip item" : "Failed to create trip item");
+            setError(msg);
         } finally {
-        setSubmitting(false);
-        }
+            setSubmitting(false);
+            }
     }
+    
 
     const clampDate = (val) => {
         if (!val) return val;
@@ -200,12 +224,15 @@ export default function TripItemModal({
         return val;
     };
 
+    const headerText = mode === "edit" ? `Edit ${selectedTypeLabel || "item"}` : `Add ${selectedTypeLabel || "item"}`;
+    const submitText = submitting ? (mode === "edit" ? "Saving…" : "Adding…") : (mode === "edit" ? "Save changes" : "Add item");
+
     return (
         <div className="modal fade" id={modalId} tabIndex="-1" aria-hidden="true" ref={modalElRef}>
             <div className="modal-dialog">
                 <form className="modal-content" onSubmit={handleSubmit}>
                 <div className="modal-header">
-                    <h5 className="modal-title">Add {selectedTypeLabel || "item"}</h5>
+                    <h5 className="modal-title">{headerText}</h5>
                     <button
                     type="button"
                     className="btn-close"
@@ -239,6 +266,7 @@ export default function TripItemModal({
                     </div>
 
                     <PlaceSearchBox
+                    id={`${modalId}-place`} 
                     label={fieldCopy.label}
                     placeholder={fieldCopy.placeholder}
                     includedPrimaryTypes={fieldCopy.primaryTypes}
@@ -322,7 +350,7 @@ export default function TripItemModal({
                     Cancel
                     </button>
                     <button type="submit" className="btn btn-primary" disabled={!canSubmit || submitting}>
-                    {submitting ? "Adding…" : "Add item"}
+                    {submitText}
                     </button>
                 </div>
                 </form>
