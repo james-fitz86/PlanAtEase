@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { listTripItems, deleteTripItem } from "../../api/trips";
+import EditTripItem from "./EditTripItem";
 
 
 function parseLocalDate(d) {
@@ -73,9 +74,10 @@ function formatTime(t) {
 }
 
 
-function ItemRow({ it, onDeleted }) {
+function ItemRow({ it, onDeleted, onUpdated, onEdit, editModalId }) {
   const rowKey = `itemrow:${it.trip_id ?? "trip"}:${it.id}`;
   const [open, setOpen] = useLocalStorage(rowKey, false);
+  const [deleting, setDeleting] = useState(false);
 
   const toggle = () => setOpen((v) => !v);
 
@@ -88,7 +90,7 @@ function ItemRow({ it, onDeleted }) {
 
   const label = it.item_type_label || it.item_type;
   const title = it.title?.trim() || it.place_name;
-  const description = it.description
+  const description = it.description;
 
   const labelColors = {
     Flight: "bg-flight",
@@ -96,31 +98,27 @@ function ItemRow({ it, onDeleted }) {
     Restaurant: "bg-restaurant",
     Transport: "bg-transport",
     Activity: "bg-activity",
-    Sightseeing: "bg-sightseeing"
+    Sightseeing: "bg-sightseeing",
   };
 
-  const [deleting, setDeleting] = useState(false);
-
   async function handleDeleteItem() {
-  if (deleting) return;
-  const ok = window.confirm("Delete this item? This cannot be undone.");
-  if (!ok) return;
+    if (deleting) return;
+    const ok = window.confirm("Delete this item? This cannot be undone.");
+    if (!ok) return;
 
-  try {
-    setDeleting(true);
-    await deleteTripItem(it.trip_id, it.id);
-    onDeleted?.(it.id);
-  } catch (e) {
-    alert(e.body?.detail || e.message || "Failed to delete item");
-    setDeleting(false);
+    try {
+      setDeleting(true);
+      await deleteTripItem(it.trip_id, it.id);
+      onDeleted?.(it.id);
+    } catch (e) {
+      alert(e.body?.detail || e.message || "Failed to delete item");
+      setDeleting(false);
+    }
   }
-}
 
   return (
     <div className="d-flex align-items-start gap-3 py-1">
-      <span
-        className={`badge text-wrap fixed-label ${labelColors[label] || "bg-secondary"}`}
-      >
+      <span className={`badge text-wrap fixed-label ${labelColors[label] || "bg-secondary"}`}>
         {label}
       </span>
 
@@ -140,6 +138,7 @@ function ItemRow({ it, onDeleted }) {
             </button>
           </div>
         </div>
+
         {open && (
           <div className="mt-1 text-muted small">
             {description && <p className="mb-2">{description}</p>}
@@ -148,9 +147,14 @@ function ItemRow({ it, onDeleted }) {
               <button
                 type="button"
                 className="btn btn-sm btn-outline-primary"
+                data-bs-toggle="modal"
+                data-bs-target={`#${editModalId}`}
+                title="Edit item"
+                onClick={() => onEdit?.(it)}
               >
                 Edit
               </button>
+
               <button
                 type="button"
                 className="btn btn-outline-danger btn-sm"
@@ -169,7 +173,7 @@ function ItemRow({ it, onDeleted }) {
 }
 
 
-function ItineraryList({ days, itemsByDate, storageKey, onItemDeleted }) {
+function ItineraryList({ days, itemsByDate, storageKey, onItemDeleted, onEdit, editModalId }) {
   const [openArray, setOpenArray] = useLocalStorage(`${storageKey}:openSet`, []);
   const openSet = useMemo(() => new Set(openArray), [openArray]);
 
@@ -214,6 +218,8 @@ function ItineraryList({ days, itemsByDate, storageKey, onItemDeleted }) {
                       key={it.id}
                       it={it}
                       onDeleted={(id) => onItemDeleted(key, id)}
+                      onEdit={onEdit}
+                      editModalId={editModalId}
                     />
                   ))
                 )}
@@ -227,7 +233,7 @@ function ItineraryList({ days, itemsByDate, storageKey, onItemDeleted }) {
 }
 
 
-function ItineraryCarousel({ days, itemsByDate, storageKey, onItemDeleted }) {
+function ItineraryCarousel({ days, itemsByDate, storageKey, onItemDeleted, onEdit, editModalId }) {
   const [idx, setIdx] = useLocalStorage(`${storageKey}:idx`, 0);
 
   if (!days.length) return <p className="text-muted mb-0">No days.</p>;
@@ -275,6 +281,8 @@ function ItineraryCarousel({ days, itemsByDate, storageKey, onItemDeleted }) {
               key={it.id}
               it={it}
               onDeleted={(id) => onItemDeleted(key, id)}
+              onEdit={onEdit}
+              editModalId={editModalId}
             />
           ))
         )}
@@ -298,6 +306,25 @@ export default function Itinerary({ start, end, tripId, refreshTick = 0 }) {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
+  const [selectedItem, setSelectedItem] = useState(null);
+  const EDIT_MODAL_ID = `tripItemModal-${tripId}-edit`;
+
+  const compareItems = (a, b) => {
+    const at = a.start_time || "";
+    const bt = b.start_time || "";
+    if (at < bt) return -1;
+    if (at > bt) return 1;
+    const ai = a.item_type || "";
+    const bi = b.item_type || "";
+    if (ai < bi) return -1;
+    if (ai > bi) return 1;
+    const ap = (a.place_name || "").toLowerCase();
+    const bp = (b.place_name || "").toLowerCase();
+    if (ap < bp) return -1;
+    if (ap > bp) return 1;
+    return 0;
+  };
+
   const handleItemDeleted = (dateKey, itemId) => {
     setItemsByDate((prev) => {
       const next = new Map(prev);
@@ -305,6 +332,27 @@ export default function Itinerary({ start, end, tripId, refreshTick = 0 }) {
       next.set(dateKey, arr.filter((x) => x.id !== itemId));
       return next;
     });
+  };
+
+  const handleItemUpdated = (updated) => {
+    setItemsByDate((prev) => {
+      const next = new Map(prev);
+      const prevKey = selectedItem?.date;
+      const nextKey = updated.date;
+
+      if (prevKey) {
+        const arrPrev = next.get(prevKey) || [];
+        next.set(prevKey, arrPrev.filter((x) => x.id !== updated.id));
+      }
+
+      const arrNext = (next.get(nextKey) || []).filter((x) => x.id !== updated.id);
+      arrNext.push(updated);
+      arrNext.sort(compareItems);
+      next.set(nextKey, arrNext);
+
+      return next;
+    });
+    setSelectedItem(null);
   };
 
   useEffect(() => {
@@ -325,21 +373,7 @@ export default function Itinerary({ start, end, tripId, refreshTick = 0 }) {
         }
 
         for (const [k, arr] of map) {
-          arr.sort((a, b) => {
-            const at = a.start_time || "";
-            const bt = b.start_time || "";
-            if (at < bt) return -1;
-            if (at > bt) return 1;
-            const ai = a.item_type || "";
-            const bi = b.item_type || "";
-            if (ai < bi) return -1;
-            if (ai > bi) return 1;
-            const ap = (a.place_name || "").toLowerCase();
-            const bp = (b.place_name || "").toLowerCase();
-            if (ap < bp) return -1;
-            if (ap > bp) return 1;
-            return 0;
-          });
+          arr.sort(compareItems);
         }
 
         if (alive) setItemsByDate(map);
@@ -388,14 +422,37 @@ export default function Itinerary({ start, end, tripId, refreshTick = 0 }) {
               ) : err ? (
                 <div className="alert alert-warning mb-0">{err}</div>
               ) : view === "list" ? (
-                <ItineraryList days={days} itemsByDate={itemsByDate} storageKey={storageKey} onItemDeleted={handleItemDeleted} />
+                <ItineraryList
+                  days={days}
+                  itemsByDate={itemsByDate}
+                  storageKey={storageKey}
+                  onItemDeleted={handleItemDeleted}
+                  onEdit={setSelectedItem}
+                  editModalId={EDIT_MODAL_ID}
+                />
               ) : (
-                <ItineraryCarousel days={days} itemsByDate={itemsByDate} storageKey={storageKey} onItemDeleted={handleItemDeleted} />
+                <ItineraryCarousel
+                  days={days}
+                  itemsByDate={itemsByDate}
+                  storageKey={storageKey}
+                  onItemDeleted={handleItemDeleted}
+                  onEdit={setSelectedItem}
+                  editModalId={EDIT_MODAL_ID}
+                />
               )}
             </div>
           </div>
         </div>
       </div>
+
+      <EditTripItem
+        modalId={EDIT_MODAL_ID}
+        item={selectedItem}
+        tripId={tripId}
+        tripStart={start}
+        tripEnd={end}
+        onSaved={handleItemUpdated}
+      />
     </div>
   );
 }
