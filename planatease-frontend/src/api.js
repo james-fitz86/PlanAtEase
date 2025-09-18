@@ -144,6 +144,11 @@ export async function me() {
   return data;
 }
 
+export async function updateMe(patch) {
+  const { data } = await API.patch("/auth/me/", patch);
+  return data;
+}
+
 export function logout() {
   clearTokens();
   if (window.location.pathname !== "/logout-success") {
