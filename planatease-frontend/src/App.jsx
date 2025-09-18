@@ -12,6 +12,7 @@ import ResetPassword from "./pages/ResetPassword.jsx";
 import CreateTripPage from "./pages/trips/CreateTripPage.jsx";
 import TripDetailPage from "./pages/trips/TripDetailPage.jsx";
 import TripEditPage from "./pages/trips/TripEditPage.jsx";
+import Profile from "./pages/profile.jsx";
 
 import "./App.css";
 
@@ -48,6 +49,14 @@ export default function App() {
             }
           />
           <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/trips/create"
             element={
               <ProtectedRoute>
@@ -74,6 +83,7 @@ export default function App() {
           <Route path="/logout-success" element={<LogoutSuccess />} />
           <Route path="/password-reset" element={<ForgotPassword />} />
           <Route path="/password-reset/confirm/:uid/:token" element={<ResetPassword />} />
+          <Route path="/password/change" element={<ResetPassword />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </main>
