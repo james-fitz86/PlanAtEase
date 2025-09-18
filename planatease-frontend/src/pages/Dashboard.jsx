@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { me, logout } from "../api";
+import { me} from "../api";
 import { useNavigate, Link } from "react-router-dom";
 import AllTrips from "../components/trips/AllTrips";
 import PageContainer from "../components/base/PageContainer";
@@ -34,11 +34,9 @@ export default function Dashboard() {
                 Welcome, <strong>{user.full_name || user.email}</strong>
               </span>
               <div className="d-flex gap-2">
-                <button
-                    className="btn btn-outline-secondary btn-sm"
-                  >
-                    Profile
-                  </button>
+                <Link to="/profile" className="btn btn-outline-secondary btn-sm">
+                  Profile
+                </Link>
                 <Link to="/trips/create" className="btn btn-primary btn-sm">
                   Create Trip
                 </Link>
