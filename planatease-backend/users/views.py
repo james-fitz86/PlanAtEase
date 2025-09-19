@@ -3,13 +3,25 @@ from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth import authenticate, login, logout
-from .serializers import RegisterSerializer, UserSerializer, LoginSerializer, ChangePasswordSerializer
+from .serializers import RegisterSerializer, UserSerializer, LoginSerializer, ChangePasswordSerializer, ActiveUserTokenObtainPairSerializer
+from djoser.conf import settings as djoser_settings
+from rest_framework_simplejwt.views import TokenObtainPairView
+
 
 # Create your views here.
 
 class RegisterView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = RegisterSerializer
+
+    def perform_create(self, serializer):
+        user = serializer.save(is_active=False)
+        if user.is_active:  # guard against serializer defaulting to True
+            user.is_active = False
+            user.save(update_fields=["is_active"])
+
+        context = {"user": user, "request": self.request}
+        djoser_settings.EMAIL.activation(self.request, context).send([user.email])
 
 class LoginView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
@@ -60,3 +72,6 @@ class ChangePasswordView(generics.UpdateAPIView):
         user.set_password(ser.validated_data["new_password"])
         user.save()
         return Response({"detail": "Password changed."})
+
+class EmailTokenObtainPairView(TokenObtainPairView):
+    serializer_class = ActiveUserTokenObtainPairSerializer
