@@ -13,7 +13,8 @@ import CreateTripPage from "./pages/trips/CreateTripPage.jsx";
 import TripDetailPage from "./pages/trips/TripDetailPage.jsx";
 import TripEditPage from "./pages/trips/TripEditPage.jsx";
 import Profile from "./pages/profile.jsx";
-
+import ActivateAccount from "./pages/ActivateAccount.jsx";
+import CheckEmail from "./pages/CheckEmail.jsx";
 import "./App.css";
 
 function Home() {
@@ -39,6 +40,8 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={< Register />} />
+          <Route path="/activate/:uid/:token" element={<ActivateAccount />} />
+          <Route path="/check-email" element={<CheckEmail />} />
 
           <Route
             path="/dashboard"
