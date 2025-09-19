@@ -22,7 +22,7 @@ export default function Register() {
     setError("");
     try {
       await register(form);
-      nav("/login");
+      nav("/check-email", { state: { email: form.email } });
     } catch (err) {
       console.error("REGISTER ERROR:", err.response?.data || err.message);
       setError(
