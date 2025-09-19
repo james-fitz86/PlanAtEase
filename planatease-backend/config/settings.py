@@ -159,9 +159,14 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [os.getenv("CORS_ALLOWED_ORIGINS")]
 
 DJOSER = {
+    "LOGIN_FIELD": "email",
+    "SEND_ACTIVATION_EMAIL": True,
+    "ACTIVATION_URL": "activate/{uid}/{token}",
+    "PASSWORD_RESET_CONFIRM_URL": "password-reset/confirm/{uid}/{token}",
     "PASSWORD_RESET_CONFIRM_URL": "password-reset/confirm/{uid}/{token}",
     "EMAIL_FRONTEND_DOMAIN": os.getenv("FRONTEND_DOMAIN", "localhost:5173"),
     "EMAIL_FRONTEND_PROTOCOL": os.getenv("FRONTEND_PROTOCOL", "http"),
+    "SEND_CONFIRMATION_EMAIL": True,
 }
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
