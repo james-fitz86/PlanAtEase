@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 User = get_user_model()
@@ -24,6 +25,12 @@ class RegisterSerializer(serializers.ModelSerializer):
             password=validated_data["password"],
             full_name=validated_data.get("full_name", "")
         )
+class ActiveUserTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        if not self.user.is_active:
+            raise serializers.ValidationError("Account is not activated. Please check your email.")
+        return data
 
 class UserSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=False)
