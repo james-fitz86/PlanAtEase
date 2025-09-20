@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { login } from "../api";
 
@@ -7,6 +7,15 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [flash, setFlash] = useState("");
+
+  useEffect(() => {
+    const reason = localStorage.getItem("auth_logout_reason");
+    if (reason === "session_max_reached") {
+      setFlash("For security, please sign in again.");
+      localStorage.removeItem("auth_logout_reason");
+    }
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -55,6 +64,7 @@ export default function Login() {
           />
         </div>
 
+        {flash && <div className="alert alert-warning">{flash}</div>}
         {error && <div className="alert alert-danger">{error}</div>}
 
         <button type="submit" className="btn btn-primary w-100">
