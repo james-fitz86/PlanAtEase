@@ -25,6 +25,12 @@ export default function Header() {
     const onAuthChanged = () => setLoggedIn(isLoggedInFromStorage());
     window.addEventListener("auth-changed", onAuthChanged);
 
+    let bc;
+    if (typeof BroadcastChannel !== "undefined") {
+      bc = new BroadcastChannel("auth");
+      bc.addEventListener("message", onAuthChanged);
+    }
+
     return () => {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("auth-changed", onAuthChanged);
