@@ -156,13 +156,15 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-CORS_ALLOWED_ORIGINS = [os.getenv("CORS_ALLOWED_ORIGINS")]
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
+
 
 DJOSER = {
     "LOGIN_FIELD": "email",
     "SEND_ACTIVATION_EMAIL": True,
     "ACTIVATION_URL": "activate/{uid}/{token}",
-    "PASSWORD_RESET_CONFIRM_URL": "password-reset/confirm/{uid}/{token}",
     "PASSWORD_RESET_CONFIRM_URL": "password-reset/confirm/{uid}/{token}",
     "EMAIL_FRONTEND_DOMAIN": os.getenv("FRONTEND_DOMAIN", "localhost:5173"),
     "EMAIL_FRONTEND_PROTOCOL": os.getenv("FRONTEND_PROTOCOL", "http"),
