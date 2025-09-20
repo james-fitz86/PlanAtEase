@@ -17,3 +17,5 @@ frontend/build/
 .DS_Store
 
 .vscode/
+
+login.json
