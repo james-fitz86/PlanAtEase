@@ -1,25 +1,7 @@
 import axios from "axios";
-
-// Key used for storing auth tokens in localStorage
-const STORAGE_KEY = "auth";
-
-
-// For getting, setting and clearing tokens from localStorage
-function getTokens() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  return raw ? JSON.parse(raw) : null;
-}
-
-function setTokens(tokens) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
-  window.dispatchEvent(new Event("auth-changed"));
-}
-
-export function clearTokens() {
-  localStorage.removeItem(STORAGE_KEY);
-  window.dispatchEvent(new Event("auth-changed"));
-}
-
+import { getTokens, setTokens, clearTokens } from "./auth/storage";
+import { scheduleFromAccess } from "./auth/scheduler";
+import { setMeta, getMeta } from "./auth/storage";
 
 // Creates an Axios instance
 const API = axios.create({
@@ -105,11 +87,14 @@ API.interceptors.response.use(
         { headers: { "Content-Type": "application/json" } }
       );
 
+      if (!data?.access) throw new Error("Refresh succeeded but no access token returned");
+
       const newTokens = {
         access: data.access,
         refresh: data.refresh || tokens.refresh,
       };
       setTokens(newTokens);
+      scheduleFromAccess(newTokens.access);
 
       API.defaults.headers.Authorization = `Bearer ${newTokens.access}`;
 
@@ -135,6 +120,10 @@ API.interceptors.response.use(
 export async function login(email, password) {
     const { data } = await API.post("/auth/jwt/create/", { email, password });
     setTokens({ access: data.access, refresh: data.refresh });
+    const meta = getMeta();
+    if (!meta.firstLoginAt) {
+      setMeta({ firstLoginAt: Date.now() });
+    }
     return data; 
 }
 
