@@ -1,0 +1,44 @@
+{% block subject %}Activate your PlanAtEase account{% endblock %}
+
+{% block text_body %}
+Welcome to PlanAtEase!
+
+Activate your account using this link:
+{% if '://' in url %}
+{{ url }}
+{% elif url|slice:":1" == "/" %}
+{{ protocol }}://{{ domain }}{{ url }}
+{% else %}
+{{ protocol }}://{{ domain }}/{{ url }}
+{% endif %}
+
+If you didn’t sign up, you can ignore this email.
+
+Thanks,
+The PlanAtEase Team
+{% endblock %}
+
+{% block html_body %}
+<!doctype html>
+<html>
+  <body>
+    <p>Welcome to <strong>PlanAtEase</strong>!</p>
+    <p>
+      {% if '://' in url %}
+        <a href="{{ url }}">{{ url }}</a>
+      {% elif url|slice:":1" == "/" %}
+        <a href="{{ protocol }}://{{ domain }}{{ url }}">
+          {{ protocol }}://{{ domain }}{{ url }}
+        </a>
+      {% else %}
+        <a href="{{ protocol }}://{{ domain }}/{{ url }}">
+          {{ protocol }}://{{ domain }}/{{ url }}
+        </a>
+      {% endif %}
+    </p>
+    <p>If you didn’t sign up, you can ignore this email.</p>
+    <p>Thanks,<br>The PlanAtEase Team</p>
+  </body>
+</html>
+{% endblock %}
+
