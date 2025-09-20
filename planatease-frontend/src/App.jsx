@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
 import logo from "./assets/images/planatease_logo.png";
 import Header from "./components/base/Header.jsx";
 import Footer from "./components/base/Footer.jsx";
@@ -17,6 +18,10 @@ import ActivateAccount from "./pages/ActivateAccount.jsx";
 import CheckEmail from "./pages/CheckEmail.jsx";
 import "./App.css";
 
+import { decodeJwt, secondsUntilExpiry } from "./auth/jwt";
+import { getTokens } from "./auth/storage";
+import { startAuthScheduler } from "./auth/scheduler.js";
+
 function Home() {
   return (
     <div>
@@ -32,6 +37,22 @@ function Home() {
 }
 
 export default function App() {
+
+  useEffect(() => {
+    const stop = startAuthScheduler();
+    return () => stop && stop();
+  }, []);
+
+  const tokens = getTokens();
+  if (tokens?.access) {
+    console.log("Decoded access token:", decodeJwt(tokens.access));
+    console.log(
+      "Seconds until expiry (with 60s leeway):",
+      secondsUntilExpiry(tokens.access)
+    );
+  } else {
+    console.log("No access token found in storage");
+  }
   return (
     <Router>
       <Header />
