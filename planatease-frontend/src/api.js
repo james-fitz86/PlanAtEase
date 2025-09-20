@@ -153,9 +153,4 @@ export async function register(form) {
   return res.status;
 }
 
-export async function register(form) {
-  const res = await API.post("/auth/users/", form);
-  return res.status;
-}
-
 export default API;
