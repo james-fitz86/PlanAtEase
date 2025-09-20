@@ -3,31 +3,39 @@ import { getTokens, setTokens, clearTokens } from "./auth/storage";
 import { scheduleFromAccess } from "./auth/scheduler";
 import { setMeta, getMeta } from "./auth/storage";
 
-// Creates an Axios instance
+// Axios instance
 const API = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: 10000,
   headers: { "Content-Type": "application/json" },
 });
 
+function isPublicAuthUrl(url = "") {
+  const u = String(url);
+  return (
+    u.includes("/auth/jwt/create/") ||
+    u.includes("/auth/jwt/refresh/") ||
+    u.includes("/auth/users/")
+  );
+}
+
+function isAuthEndpoint(url = "") {
+  const u = String(url);
+  return u.includes("/auth/jwt/create/") || u.includes("/auth/users/");
+}
 
 // Request interceptor
 API.interceptors.request.use((config) => {
   const url = config.url || "";
-  const isPublic =
-    url.includes("/auth/jwt/create/") ||
-    url.includes("/auth/jwt/refresh/") ||
-    url.includes("/auth/register/");
+  const publicRoute = isPublicAuthUrl(url);
 
-  if (!isPublic) {
+  if (!publicRoute) {
     const tokens = getTokens();
     if (tokens?.access) {
       config.headers.Authorization = `Bearer ${tokens.access}`;
     }
-  } else {
-    if (config.headers?.Authorization) {
-      delete config.headers.Authorization;
-    }
+  } else if (config.headers?.Authorization) {
+    delete config.headers.Authorization;
   }
 
   return config;
@@ -35,7 +43,6 @@ API.interceptors.request.use((config) => {
 
 // Handle token refresh state
 let isRefreshing = false;
-
 let queue = [];
 
 function processQueue(err, newAccess = null) {
@@ -43,7 +50,9 @@ function processQueue(err, newAccess = null) {
     if (err) {
       reject(err);
     } else {
-      config.headers.Authorization = `Bearer ${newAccess}`;
+      if (newAccess) {
+        config.headers.Authorization = `Bearer ${newAccess}`;
+      }
       resolve(API(config));
     }
   });
@@ -57,14 +66,9 @@ API.interceptors.response.use(
     const original = error.config;
 
     if (!error.response) return Promise.reject(error);
-
     if (error.response.status !== 401) return Promise.reject(error);
 
-    const isAuthEndpoint =
-      original?.url?.includes("/auth/jwt/create/") ||
-      original?.url?.includes("/auth/register/");
-
-    if (isAuthEndpoint) return Promise.reject(error);
+    if (isAuthEndpoint(original?.url)) return Promise.reject(error);
 
     if (original._retry) return Promise.reject(error);
     original._retry = true;
@@ -118,15 +122,14 @@ API.interceptors.response.use(
 // Authentication Helpers
 
 export async function login(email, password) {
-    const { data } = await API.post("/auth/jwt/create/", { email, password });
-    setTokens({ access: data.access, refresh: data.refresh });
-    const meta = getMeta();
-    if (!meta.firstLoginAt) {
-      setMeta({ firstLoginAt: Date.now() });
-    }
-    return data; 
+  const { data } = await API.post("/auth/jwt/create/", { email, password });
+  setTokens({ access: data.access, refresh: data.refresh });
+  const meta = getMeta();
+  if (!meta.firstLoginAt) {
+    setMeta({ firstLoginAt: Date.now() });
+  }
+  return data;
 }
-
 
 export async function me() {
   const { data } = await API.get("/auth/me/");
@@ -146,8 +149,13 @@ export function logout() {
 }
 
 export async function register(form) {
-  const { data } = await API.post("/auth/register/", form);
-  return data;
+  const res = await API.post("/auth/users/", form);
+  return res.status;
+}
+
+export async function register(form) {
+  const res = await API.post("/auth/users/", form);
+  return res.status;
 }
 
 export default API;
