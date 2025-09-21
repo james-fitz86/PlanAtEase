@@ -13,7 +13,7 @@ import ResetPassword from "./pages/ResetPassword.jsx";
 import CreateTripPage from "./pages/trips/CreateTripPage.jsx";
 import TripDetailPage from "./pages/trips/TripDetailPage.jsx";
 import TripEditPage from "./pages/trips/TripEditPage.jsx";
-import Profile from "./pages/profile.jsx";
+import Profile from "./pages/Profile.jsx";
 import ActivateAccount from "./pages/ActivateAccount.jsx";
 import CheckEmail from "./pages/CheckEmail.jsx";
 import "./App.css";
