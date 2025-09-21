@@ -149,7 +149,9 @@ export function logout() {
 }
 
 export async function register(form) {
-  const res = await API.post("/auth/users/", form);
+  const res = await axios.post(`${BASE}/auth/users/`, form, {
+    headers: { "Content-Type": "application/json" },
+  });
   return res.status;
 }
 
