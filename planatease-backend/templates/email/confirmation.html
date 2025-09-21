@@ -1,22 +1,19 @@
-{% block subject %}Activate your PlanAtEase account{% endblock %}
+{% block subject %}Your PlanAtEase account is active{% endblock %}
 
 {% block text_body %}
-Welcome to PlanAtEase!
+Your account has been created and is ready to use!
 
-Activate your account using this link:
-{% if '://' in url %}
-{{ url }}
-{% elif url|slice:":1" == "/" %}
-{{ protocol }}://{{ domain }}{{ url }}
+You can sign in here:
+{% if protocol and domain %}
+{{ protocol }}://{{ domain }}/login
 {% else %}
-{{ protocol }}://{{ domain }}/{{ url }}
+https://planatease.site/login
 {% endif %}
-
-If you didn’t sign up, you can ignore this email.
 
 Thanks,
 The PlanAtEase Team
 {% endblock %}
+
 
 {% block html_body %}
 <!doctype html>
@@ -28,22 +25,20 @@ The PlanAtEase Team
           <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border-radius:8px;overflow:hidden;">
             <tr>
               <td align="center" style="padding:24px 24px 0;">
-                <img src="https://planatease.site/logo-email.png" width="140" alt="PlanAtEase" style="display:block;border:0;outline:none;text-decoration:none;height:auto;">?
+                <img src="https://planatease.site/logo-email.png" width="140" alt="PlanAtEase" style="display:block;border:0;outline:none;text-decoration:none;height:auto;">
               </td>
             </tr>
             <tr>
               <td style="padding:24px 24px 8px;font-family:Arial,Helvetica,sans-serif;color:#111827;font-size:16px;line-height:1.5;">
-                <p style="margin:0 0 12px 0;">Welcome to <strong>PlanAtEase</strong>!</p>
+                <p style="margin:0 0 12px 0;">Your account has been created and is ready to use!</p>
                 <p style="margin:0 0 16px 0;">
-                  {% if '://' in url %}
-                    <a href="{{ url }}" style="color:#1d4ed8;">{{ url }}</a>
-                  {% elif url|slice:":1" == "/" %}
-                    <a href="{{ protocol }}://{{ domain }}{{ url }}" style="color:#1d4ed8;">{{ protocol }}://{{ domain }}{{ url }}</a>
+                  You can sign in here:
+                  {% if protocol and domain %}
+                    <a href="{{ protocol }}://{{ domain }}/login" style="color:#1d4ed8;">{{ protocol }}://{{ domain }}/login</a>
                   {% else %}
-                    <a href="{{ protocol }}://{{ domain }}/{{ url }}" style="color:#1d4ed8;">{{ protocol }}://{{ domain }}/{{ url }}</a>
+                    <a href="https://planatease.site/login" style="color:#1d4ed8;">https://planatease.site/login</a>
                   {% endif %}
                 </p>
-                <p style="margin:0 0 12px 0;">If you didn’t sign up, you can ignore this email.</p>
                 <p style="margin:0;">Thanks,<br><strong>The PlanAtEase Team</strong></p>
               </td>
             </tr>
