@@ -3,6 +3,8 @@ import { getTokens, setTokens, clearTokens } from "./auth/storage";
 import { scheduleFromAccess } from "./auth/scheduler";
 import { setMeta, getMeta } from "./auth/storage";
 
+const BASE = import.meta.env.VITE_API_BASE_URL;
+
 // Axios instance
 const API = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
