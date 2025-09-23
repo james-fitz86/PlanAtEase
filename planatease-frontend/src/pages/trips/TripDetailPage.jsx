@@ -181,6 +181,7 @@ export default function TripDetailPage() {
                 tripStart={trip.start_date}
                 tripEnd={trip.end_date}
                 onCreated={refreshItems}
+                defaultDate={dayFilter} 
               />
             </div>
             
