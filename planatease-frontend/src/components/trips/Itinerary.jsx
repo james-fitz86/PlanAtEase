@@ -255,7 +255,7 @@ function ItineraryList({ days, itemsByDate, storageKey, onItemDeleted, onEdit, e
 }
 
 
-function ItineraryCarousel({ days, itemsByDate, storageKey, onItemDeleted, onEdit, editModalId }) {
+function ItineraryCarousel({ days, itemsByDate, storageKey, onItemDeleted, onEdit, editModalId, onDayFilterChange }) {
   const [idx, setIdx] = useLocalStorage(`${storageKey}:idx`, 0);
 
   if (!days.length) return <p className="text-muted mb-0">No days.</p>;
@@ -272,6 +272,14 @@ function ItineraryCarousel({ days, itemsByDate, storageKey, onItemDeleted, onEdi
   const day = days[safeIdx];
   const key = ymdLocal(day);
   const items = itemsByDate.get(key) || [];
+
+  useEffect(() => {
+    if (!days.length) {
+      onDayFilterChange?.(null);
+      return;
+    }
+    onDayFilterChange?.(key);
+  }, [key, days, onDayFilterChange]);
 
   return (
     <div className="border rounded">
@@ -317,12 +325,15 @@ function ItineraryCarousel({ days, itemsByDate, storageKey, onItemDeleted, onEdi
 }
 
 
-export default function Itinerary({ start, end, tripId, refreshTick = 0, onItemsChanged }) {
+export default function Itinerary({ start, end, tripId, refreshTick = 0, onItemsChanged, onDayFilterChange }) {
   if (!tripId) return null;
 
   const days = useMemo(() => getTripDays(start, end), [start, end]);
   const storageKey = `itinerary:${tripId}`;
   const [view, setView] = useLocalStorage(`${storageKey}:view`, "list");
+  useEffect(() => {
+    if (view === "list") onDayFilterChange?.(null);
+  }, [view, onDayFilterChange]);
 
   const [itemsByDate, setItemsByDate] = useState(() => new Map());
   const [loading, setLoading] = useState(true);
@@ -423,7 +434,7 @@ export default function Itinerary({ start, end, tripId, refreshTick = 0, onItems
                   <button
                     type="button"
                     className={`btn ${view === "list" ? "btn-primary" : "btn-outline-primary"}`}
-                    onClick={() => setView("list")}
+                    onClick={() => { setView("list"); onDayFilterChange?.(null); }}
                   >
                     List View
                   </button>
@@ -461,6 +472,7 @@ export default function Itinerary({ start, end, tripId, refreshTick = 0, onItems
                   onItemDeleted={handleItemDeleted}
                   onEdit={setSelectedItem}
                   editModalId={EDIT_MODAL_ID}
+                  onDayFilterChange={onDayFilterChange}
                 />
               )}
             </div>
