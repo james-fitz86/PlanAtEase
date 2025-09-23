@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { getTrip, listTripMembers, deleteTrip } from "../../api/trips";
+import { getTrip, listTripMembers, deleteTrip, listTripItems } from "../../api/trips";
 import MemberCard from "../../components/trips/MemberCard";
 import Itinerary from "../../components/trips/Itinerary";
 import CreateTripItem from "../../components/trips/CreateTripItem";
 import PageContainer from "../../components/base/PageContainer";
 import { countryNameFromCode } from "../../utils/geo";
+import TripMap from "../../components/trips/TripMap";
 
 function formatDate(dateStr) {
   if (!dateStr) return "-";
@@ -37,6 +38,7 @@ export default function TripDetailPage() {
   const [err, setErr] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [itemsVersion, setItemsVersion] = useState(0);
+  const [items, setItems] = useState([]);
 
   async function refreshMembers() {
     try {
@@ -50,6 +52,22 @@ export default function TripDetailPage() {
   function refreshItems() {
     setItemsVersion((v) => v + 1);
   }
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const data = await listTripItems(id);
+        if (!alive) return;
+        setItems(Array.isArray(data) ? data : []);
+        console.log("Trip items loaded:", data?.length ?? 0, data);
+      } catch (e) {
+        console.error("Failed to load trip items", e);
+      }
+    })();
+    return () => { alive = false; };
+  }, [id, itemsVersion]);
+
 
   useEffect(() => {
     let alive = true;
@@ -165,25 +183,22 @@ export default function TripDetailPage() {
               end={trip.end_date}
               tripId={trip.id}
               refreshTick={itemsVersion}
+              onItemsChanged={refreshItems}
             />
 
           </div>
         </div>
 
         <aside className="col-12 col-md-5 col-lg-5 col-sticky">
-          <div
-            className="sticky-map border rounded-3 overflow-hidden"
-          >
-            <iframe
-              title="Trip Map"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              style={{ width: "100%", height: "100%", border: 0 }}
-              src={`https://www.google.com/maps?q=${encodeURIComponent(
-                trip.formatted_address ||
-                  trip.city_name ||
-                  `${trip.city_name || ""} ${trip.country_code || ""}`
-              )}&output=embed`}
+          <div className="sticky-map border rounded-3 overflow-hidden" style={{ minHeight: 380 }}>
+            <TripMap
+              apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
+              items={items}
+              center={
+                trip?.lat != null && trip?.lng != null
+                  ? { lat: Number(trip.lat), lng: Number(trip.lng) }
+                  : undefined
+              }
             />
           </div>
         </aside>
