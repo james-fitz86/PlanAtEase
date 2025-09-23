@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getTrip, listTripMembers, deleteTrip, listTripItems } from "../../api/trips";
 import MemberCard from "../../components/trips/MemberCard";
@@ -39,6 +39,12 @@ export default function TripDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [itemsVersion, setItemsVersion] = useState(0);
   const [items, setItems] = useState([]);
+  const [dayFilter, setDayFilter] = useState(null);
+
+  const itemsForMap = useMemo(
+    () => (dayFilter ? items.filter(it => it.date === dayFilter) : items),
+    [items, dayFilter]
+  );
 
   async function refreshMembers() {
     try {
@@ -184,6 +190,7 @@ export default function TripDetailPage() {
               tripId={trip.id}
               refreshTick={itemsVersion}
               onItemsChanged={refreshItems}
+              onDayFilterChange={setDayFilter}
             />
 
           </div>
@@ -193,7 +200,7 @@ export default function TripDetailPage() {
           <div className="sticky-map border rounded-3 overflow-hidden" style={{ minHeight: 380 }}>
             <TripMap
               apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
-              items={items}
+              items={itemsForMap}
               center={
                 trip?.lat != null && trip?.lng != null
                   ? { lat: Number(trip.lat), lng: Number(trip.lng) }
