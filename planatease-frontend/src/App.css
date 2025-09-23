@@ -156,3 +156,12 @@ footer {
     --bs-card-spacer-x: 1rem;
   }
 }
+.item-row-click { 
+  border-radius: .375rem; 
+} 
+.item-row-click:hover { 
+  background: rgba(13,110,253,.06); 
+}
+.item-row-click:focus-within { 
+  outline-offset: 2px; 
+}
