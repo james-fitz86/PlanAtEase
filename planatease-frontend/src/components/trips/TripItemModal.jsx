@@ -77,6 +77,7 @@ export default function TripItemModal({
     tripEnd,
     onCreated,
     onSaved,
+    defaultDate,
     }) {
     
     const modalElRef = useRef(null);
@@ -223,6 +224,20 @@ export default function TripItemModal({
         if (tripEndDate && val > tripEndDate) return tripEndDate;
         return val;
     };
+
+    useEffect(() => {
+    const el = modalElRef.current || document.getElementById(modalId);
+    if (!el) return;
+
+    const handleShow = () => {
+        if (mode === "edit") return;
+        const prefill = defaultDate ? clampDate(toDateOnly(defaultDate)) : "";
+        setForm(f => ({ ...f, date: prefill || "" }));
+    };
+
+    el.addEventListener("show.bs.modal", handleShow);
+    return () => el.removeEventListener("show.bs.modal", handleShow);
+    }, [modalId, mode, defaultDate, tripStartDate, tripEndDate]);
 
     const headerText = mode === "edit" ? `Edit ${selectedTypeLabel || "item"}` : `Add ${selectedTypeLabel || "item"}`;
     const submitText = submitting ? (mode === "edit" ? "Saving…" : "Adding…") : (mode === "edit" ? "Save changes" : "Add item");
