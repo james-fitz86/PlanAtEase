@@ -10,7 +10,7 @@ const TYPE_BUTTONS = [
   { label: "Sightseeing", btnClass: "btn-sightseeing trip-button" },
 ];
 
-export default function CreateTripItem({ tripId, onCreated, tripStart, tripEnd }) {
+export default function CreateTripItem({ tripId, onCreated, tripStart, tripEnd, defaultDate }) {
   const [selectedTypeLabel, setSelectedTypeLabel] = useState(null);
   const CREATE_MODAL_ID = `tripItemModal-${tripId}-create`;
 
@@ -47,6 +47,7 @@ export default function CreateTripItem({ tripId, onCreated, tripStart, tripEnd }
         tripStart={tripStart}
         tripEnd={tripEnd}
         onCreated={onCreated}
+        defaultDate={defaultDate}
       />
     </div>
   );
