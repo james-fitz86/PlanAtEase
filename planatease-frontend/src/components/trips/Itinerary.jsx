@@ -81,6 +81,15 @@ function ItemRow({ it, onDeleted, onUpdated, onEdit, editModalId }) {
 
   const toggle = () => setOpen((v) => !v);
 
+  const detailsId = `it-details-${it.id}`;
+  const handleRowClick = () => toggle();
+  const handleRowKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggle();
+    }
+  };
+
   const time =
     it.start_time && it.end_time
       ? `${formatTime(it.start_time)}–${formatTime(it.end_time)}`
@@ -101,7 +110,8 @@ function ItemRow({ it, onDeleted, onUpdated, onEdit, editModalId }) {
     Sightseeing: "bg-sightseeing",
   };
 
-  async function handleDeleteItem() {
+  async function handleDeleteItem(e) {
+    e.stopPropagation();
     if (deleting) return;
     const ok = window.confirm("Delete this item? This cannot be undone.");
     if (!ok) return;
@@ -117,7 +127,17 @@ function ItemRow({ it, onDeleted, onUpdated, onEdit, editModalId }) {
   }
 
   return (
-    <div className="d-flex align-items-start gap-3 py-1">
+    <div
+      className="d-flex align-items-start gap-3 py-1 item-row-click"
+      role="button"
+      tabIndex={0}
+      aria-expanded={open}
+      aria-controls={detailsId}
+      onClick={handleRowClick}
+      onKeyDown={handleRowKeyDown}
+      onMouseDown={(e) => e.currentTarget.focus()}
+      style={{ cursor: "pointer" }}
+    >
       <span className={`badge text-wrap fixed-label ${labelColors[label] || "bg-secondary"}`}>
         {label}
       </span>
@@ -127,20 +147,18 @@ function ItemRow({ it, onDeleted, onUpdated, onEdit, editModalId }) {
           <strong>{title}</strong>
           <div className="d-flex align-items-center gap-2">
             {time && <small className="text-muted">{time}</small>}
-            <button
-              type="button"
-              className="btn btn-sm btn-light p-0 px-2"
-              onClick={toggle}
-              aria-expanded={open}
-              aria-label={open ? "Collapse details" : "Expand details"}
-            >
+            <span className="toggle-glyph" aria-hidden="true" style={{ display: "inline-block", width: "1.25rem", textAlign: "center", fontWeight: 600, userSelect: "none" }}>
               {open ? "−" : "+"}
-            </button>
+            </span>
           </div>
         </div>
 
         {open && (
-          <div className="mt-1 text-muted small">
+          <div
+            id={detailsId}
+            className="mt-1 text-muted small"
+            onClick={(e) => e.stopPropagation()}
+          >
             {description && <p className="mb-2">{description}</p>}
 
             <div className="d-flex gap-2">
@@ -150,7 +168,10 @@ function ItemRow({ it, onDeleted, onUpdated, onEdit, editModalId }) {
                 data-bs-toggle="modal"
                 data-bs-target={`#${editModalId}`}
                 title="Edit item"
-                onClick={() => onEdit?.(it)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit?.(it);
+                }}
               >
                 Edit
               </button>
@@ -171,6 +192,7 @@ function ItemRow({ it, onDeleted, onUpdated, onEdit, editModalId }) {
     </div>
   );
 }
+
 
 
 function ItineraryList({ days, itemsByDate, storageKey, onItemDeleted, onEdit, editModalId }) {
@@ -295,7 +317,7 @@ function ItineraryCarousel({ days, itemsByDate, storageKey, onItemDeleted, onEdi
 }
 
 
-export default function Itinerary({ start, end, tripId, refreshTick = 0 }) {
+export default function Itinerary({ start, end, tripId, refreshTick = 0, onItemsChanged }) {
   if (!tripId) return null;
 
   const days = useMemo(() => getTripDays(start, end), [start, end]);
@@ -332,6 +354,7 @@ export default function Itinerary({ start, end, tripId, refreshTick = 0 }) {
       next.set(dateKey, arr.filter((x) => x.id !== itemId));
       return next;
     });
+    onItemsChanged?.();
   };
 
   const handleItemUpdated = (updated) => {
