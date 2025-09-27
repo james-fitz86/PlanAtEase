@@ -189,6 +189,8 @@ export default function TripDetailPage() {
               start={trip.start_date}
               end={trip.end_date}
               tripId={trip.id}
+              tripLat={trip.lat}
+              tripLng={trip.lng}
               refreshTick={itemsVersion}
               onItemsChanged={refreshItems}
               onDayFilterChange={setDayFilter}
