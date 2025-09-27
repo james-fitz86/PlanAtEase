@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { listTripItems, deleteTripItem } from "../../api/trips";
 import EditTripItem from "./EditTripItem";
-
+import { WeatherProvider, WeatherPillInline, WeatherPillMobile, WeatherDetails } from "./WeatherForecast";
 
 function parseLocalDate(d) {
   if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
@@ -72,7 +72,6 @@ function formatTime(t) {
   if (!t) return "";
   return t.slice(0, 5);
 }
-
 
 function ItemRow({ it, onDeleted, onUpdated, onEdit, editModalId }) {
   const rowKey = `itemrow:${it.trip_id ?? "trip"}:${it.id}`;
@@ -255,7 +254,7 @@ function ItineraryList({ days, itemsByDate, storageKey, onItemDeleted, onEdit, e
 }
 
 
-function ItineraryCarousel({ days, itemsByDate, storageKey, onItemDeleted, onEdit, editModalId, onDayFilterChange }) {
+function ItineraryCarousel({ days, itemsByDate, storageKey, tripId, tripLat, tripLng, onItemDeleted, onEdit, editModalId, onDayFilterChange }) {
   const [idx, setIdx] = useLocalStorage(`${storageKey}:idx`, 0);
 
   if (!days.length) return <p className="text-muted mb-0">No days.</p>;
@@ -271,7 +270,17 @@ function ItineraryCarousel({ days, itemsByDate, storageKey, onItemDeleted, onEdi
 
   const day = days[safeIdx];
   const key = ymdLocal(day);
+
+  useEffect(() => {
+    console.debug("Day key ->", key, "tripId ->", tripId);
+  }, [key, tripId]);
+
   const items = itemsByDate.get(key) || [];
+
+  const prevIdx = (safeIdx - 1 + days.length) % days.length;
+  const nextIdx = (safeIdx + 1) % days.length;
+  const prevKey = ymdLocal(days[prevIdx]);
+  const nextKey = ymdLocal(days[nextIdx]);
 
   useEffect(() => {
     if (!days.length) {
@@ -283,25 +292,51 @@ function ItineraryCarousel({ days, itemsByDate, storageKey, onItemDeleted, onEdi
 
   return (
     <div className="border rounded">
-      <div className="d-flex align-items-center justify-content-between p-2 border-bottom">
-        <button
-          type="button"
-          className="btn btn-sm btn-outline-secondary"
-          onClick={prev}
-          aria-label="Previous day"
-        >
-          ◂
-        </button>
-        <h6 className="mb-0 text-center"><DayLabel day={day} /></h6>
-        <button
-          type="button"
-          className="btn btn-sm btn-outline-secondary"
-          onClick={next}
-          aria-label="Next day"
-        >
-          ▸
-        </button>
-      </div>
+      <WeatherProvider
+        storageKey={storageKey}
+        tripId={tripId}
+        dateKey={key}
+        neighborKeys={[prevKey, nextKey]}
+        lat={tripLat}
+        lng={tripLng}
+      >
+        <div className="d-flex align-items-center justify-content-between p-2 border-bottom">
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            onClick={prev}
+            aria-label="Previous day"
+          >
+            ◂
+          </button>
+
+          <h6 className="mb-0 text-center">
+            <DayLabel day={day} />
+          </h6>
+
+          <div className="d-none d-sm-block">
+            <WeatherPillInline />
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            onClick={next}
+            aria-label="Next day"
+          >
+            ▸
+          </button>
+        </div>
+
+        <div className="p-2 pt-2 border-bottom d-block d-sm-none">
+          <WeatherPillMobile />
+        </div>
+
+        
+        <WeatherDetails />
+        
+      </WeatherProvider>
+
       <div key={key} className="p-3 text-start">
         {items.length === 0 ? (
           <p className="text-muted small mb-0">No items for this day.</p>
@@ -317,6 +352,7 @@ function ItineraryCarousel({ days, itemsByDate, storageKey, onItemDeleted, onEdi
           ))
         )}
       </div>
+
       <div className="px-3 py-2 text-center text-muted small border-top">
         Day {safeIdx + 1} of {days.length}
       </div>
@@ -325,7 +361,7 @@ function ItineraryCarousel({ days, itemsByDate, storageKey, onItemDeleted, onEdi
 }
 
 
-export default function Itinerary({ start, end, tripId, refreshTick = 0, onItemsChanged, onDayFilterChange }) {
+export default function Itinerary({ start, end, tripId, tripLat, tripLng,  refreshTick = 0, onItemsChanged, onDayFilterChange }) {
   if (!tripId) return null;
 
   const days = useMemo(() => getTripDays(start, end), [start, end]);
@@ -469,6 +505,9 @@ export default function Itinerary({ start, end, tripId, refreshTick = 0, onItems
                   days={days}
                   itemsByDate={itemsByDate}
                   storageKey={storageKey}
+                  tripId={tripId}
+                  tripLat={tripLat}
+                  tripLng={tripLng}
                   onItemDeleted={handleItemDeleted}
                   onEdit={setSelectedItem}
                   editModalId={EDIT_MODAL_ID}
