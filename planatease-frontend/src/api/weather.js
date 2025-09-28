@@ -160,7 +160,7 @@ export async function getTripDayWeather(tripId, dateYmd, lat, lng) {
     icon: mapIcon(cond),
     sunrise,
     sunset,
-    hourly: hourlyRows.map(h => ({ time: h.time, t: h.t, pop: h.pop })),
+    hourly: hourlyRows.map(h => ({ time: h.time, t: h.t, pop: h.pop, _cond: h._cond })),
     attribution: "Weather data © Google",
     timeZone: tz,
   };
