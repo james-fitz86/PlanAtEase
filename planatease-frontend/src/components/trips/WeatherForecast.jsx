@@ -18,6 +18,12 @@ const ICONS = {
   mist: "🌫️", default: "🌤️",
 };
 
+const ICONS_NIGHT = {
+  clear: "🌙", sunny: "🌙", partly_cloudy: "☁️🌙", cloudy: "☁️",
+  rain: "🌧️", showers: "🌦️", thunder: "⛈️", snow: "🌨️",
+  mist: "🌫️", default: "🌙",
+};
+
 const WEATHER_TTL_MS = 6 * 60 * 60 * 1000;
 const _weatherMem = new Map();
 const _lsGet = (k) => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
@@ -58,6 +64,17 @@ function useWeather({ tripId, dateKey, prefetchKeys = [], cacheNs = "wx", lat, l
   }, [tripId, dateKey, JSON.stringify(prefetchKeys), cacheNs, lat, lng]);
 
   return state;
+}
+
+function hhmmToMinutes(str) {
+  if (!str) return null;
+  const m = str.match(/T?(\d{2}):(\d{2})/);
+  if (!m) return null;
+  return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+}
+function isNightAt(mins, sunriseMin, sunsetMin) {
+  if (mins == null || sunriseMin == null || sunsetMin == null) return null;
+  return mins < sunriseMin || mins >= sunsetMin;
 }
 
 const WxCtx = createContext(null);
@@ -119,23 +136,43 @@ export function WeatherPillMobile() {
   return <WeatherPillBase size="compact" />;
 }
 
-function HourChip({ time, t, pop, cond }) {
-  const iconKey = cond ? cond.code?.toLowerCase() : "";
-  const descKey = cond?.description?.text?.toLowerCase() || "";
-  let icon = ICONS.default;
-  if (iconKey.includes("clear") || descKey.includes("clear") || descKey.includes("sunny")) icon = ICONS.sunny;
-  else if (descKey.includes("partly") || descKey.includes("mostly")) icon = ICONS.partly_cloudy;
-  else if (descKey.includes("cloud")) icon = ICONS.cloudy;
-  else if (descKey.includes("thunder")) icon = ICONS.thunder;
-  else if (descKey.includes("snow")) icon = ICONS.snow;
-  else if (descKey.includes("rain") || descKey.includes("shower") || descKey.includes("drizzle")) icon = ICONS.rain;
-  else if (descKey.includes("mist") || descKey.includes("fog")) icon = ICONS.mist;
+
+
+function HourChip({ time, t, pop, cond, isNight }) {
+  const iconKey = String(cond?.code ?? cond?.icon ?? "").toLowerCase();
+  const descKey = String(cond?.description?.text ?? cond?.text ?? "").toLowerCase();
+  const TABLE = isNight ? ICONS_NIGHT : ICONS;
+
+  console.log("cond shapes:", typeof cond?.code, cond?.code, typeof descKey, descKey);
+
+  let icon = TABLE.default;
+
+  if (iconKey.includes("thunder") || descKey.includes("thunder")) icon = TABLE.thunder;
+  else if (iconKey.includes("snow") || descKey.includes("snow")) icon = TABLE.snow;
+  else if (
+    iconKey.includes("rain") || descKey.includes("rain") ||
+    descKey.includes("shower") || descKey.includes("drizzle")
+  ) icon = TABLE.rain;
+
+  else if (iconKey.includes("mist") || descKey.includes("mist") ||
+           descKey.includes("fog")  || descKey.includes("haze")) icon = TABLE.mist;
+
+  else if (
+    (descKey.includes("clear") || descKey.includes("sunny") || iconKey.includes("clear")) &&
+    (descKey.includes("cloud") || iconKey.includes("cloud"))
+  ) icon = TABLE.partly_cloudy;
+
+  else if (descKey.includes("overcast") || iconKey.includes("overcast") || descKey.includes("cloud") || iconKey.includes("cloud"))
+    icon = TABLE.cloudy;
+
+  else if (descKey.includes("partly") || descKey.includes("mostly"))
+    icon = TABLE.partly_cloudy;
+
+  else if (descKey.includes("clear") || descKey.includes("sunny") || iconKey.includes("clear"))
+    icon = TABLE.sunny;
 
   return (
-    <div
-      className="bg-light border rounded-3 text-center"
-      style={{ minWidth: 84, padding: "10px 8px" }}
-    >
+    <div className="bg-light border rounded-3 text-center" style={{ minWidth: 84, padding: "10px 8px" }}>
       <div className="text-muted small" style={{ lineHeight: 1.1 }}>{time}</div>
       <div style={{ fontSize: 20, lineHeight: 1.2 }}>{icon}</div>
       <div className="fw-semibold" style={{ fontSize: 16, lineHeight: 1.2 }}>{Math.round(t)}°</div>
@@ -144,12 +181,18 @@ function HourChip({ time, t, pop, cond }) {
   );
 }
 
+
+
 export function WeatherDetails() {
   const { wxState, wxOpen } = useWxCtx();
   const wx = wxState.data;
   if (!wx || wxState.status !== "ready" || !wxOpen) return null;
 
   const hasHourly = Array.isArray(wx.hourly) && wx.hourly.length > 0;
+
+  if (wx?.hourly?.length) {
+    console.log("hour[0] keys:", Object.keys(wx.hourly[0] || {}), wx.hourly[0]);
+  }
 
   return (
     <div className="px-3 pt-2 border-bottom">
@@ -172,16 +215,32 @@ export function WeatherDetails() {
             <div className="fw-semibold mb-2">Hourly</div>
             <div
               className="d-flex gap-2"
-              style={{
-                overflowX: "auto",
-                WebkitOverflowScrolling: "touch",
-                paddingBottom: 6
-              }}
+              style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 6 }}
               aria-label="Hourly forecast, scroll horizontally"
             >
-              {wx.hourly.map((h, i) => (
-                <HourChip key={i} time={h.time} t={h.t} pop={h.pop} cond={h._cond} />
-              ))}
+              {(() => {
+                const sunriseMin = hhmmToMinutes(wx.sunrise);
+                const sunsetMin  = hhmmToMinutes(wx.sunset);
+                return wx.hourly.map((h, i) => {
+                  const derivedNight = isNightAt(hhmmToMinutes(h.time), sunriseMin, sunsetMin);
+                  const isNight =
+                    (typeof h.is_day === "boolean" ? !h.is_day : null) ??
+                    (typeof h.isNight === "boolean" ? h.isNight : null) ??
+                    (h.dayNight ? String(h.dayNight).toUpperCase() === "NIGHT" : null) ??
+                    derivedNight;
+
+                  return (
+                    <HourChip
+                      key={i}
+                      time={h.time}
+                      t={h.t}
+                      pop={h.pop}
+                      cond={h._cond}
+                      isNight={!!isNight}
+                    />
+                  );
+                });
+              })()}
             </div>
             {wx.debug?.merged_for_date_count !== undefined && (
               <div className="text-muted small mt-1">
@@ -190,6 +249,7 @@ export function WeatherDetails() {
             )}
           </div>
         )}
+
 
         {wx.attribution && <div className="mt-2 text-muted">{wx.attribution}</div>}
       </div>
