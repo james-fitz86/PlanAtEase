@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import Trip, TripMember, TripItem
 from django.contrib.auth import get_user_model
+from django.db import transaction
+from django.db.models import Q
 
 User = get_user_model()
 
@@ -38,7 +40,26 @@ class TripSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         if instance.owner_id != self.context["request"].user.id:
             raise serializers.ValidationError("Only the owner can update trip details.")
-        return super().update(instance, validated_data)
+
+        old_start = instance.start_date
+        old_end = instance.end_date
+
+        with transaction.atomic():
+            instance = super().update(instance, validated_data)
+
+            new_start = instance.start_date
+            new_end = instance.end_date
+            if old_start != new_start or old_end != new_end:
+                from .models import TripItem
+                (
+                    TripItem.objects
+                    .filter(trip=instance)
+                    .filter(Q(date__lt=new_start) | Q(date__gt=new_end))
+                    .delete()
+                )
+
+        return instance
+
     
     def get_is_owner(self, obj):
         request = self.context.get("request")
