@@ -143,8 +143,6 @@ function HourChip({ time, t, pop, cond, isNight }) {
   const descKey = String(cond?.description?.text ?? cond?.text ?? "").toLowerCase();
   const TABLE = isNight ? ICONS_NIGHT : ICONS;
 
-  console.log("cond shapes:", typeof cond?.code, cond?.code, typeof descKey, descKey);
-
   let icon = TABLE.default;
 
   if (iconKey.includes("thunder") || descKey.includes("thunder")) icon = TABLE.thunder;
