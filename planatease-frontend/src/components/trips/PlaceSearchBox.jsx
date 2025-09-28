@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { ensureGoogleMaps } from "../../utils/googleMapsLoader";
 
 export default function PlaceSearchBox({
   
@@ -23,6 +24,7 @@ export default function PlaceSearchBox({
     async function init() {
       if (!window.google?.maps?.importLibrary || !hostRef.current) return;
 
+      await ensureGoogleMaps(); 
       const { PlaceAutocompleteElement } = await google.maps.importLibrary("places");
 
       el = new PlaceAutocompleteElement();

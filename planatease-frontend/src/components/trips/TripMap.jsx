@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
+import { ensureGoogleMaps } from "../../utils/googleMapsLoader";
 
 const TYPE_COLORS = {
   flight: "#1e90ff",
@@ -20,17 +20,14 @@ export default function TripMap({ apiKey, items = [], center }) {
   useEffect(() => {
     let cancelled = false;
 
-    const loader = new Loader({
-      apiKey,
-      version: "weekly",
-      libraries: ["marker"],
-    });
-
     async function init() {
-      const { Map } = await loader.importLibrary("maps");
-      await loader.importLibrary("marker");
+      console.log("MAP_ID from env:", import.meta.env.VITE_GOOGLE_MAPS_MAP_ID);
+      await ensureGoogleMaps();
 
       if (cancelled) return;
+
+      const { Map } = await google.maps.importLibrary("maps");
+      await google.maps.importLibrary("marker");
 
       mapRef.current = new Map(mapDivRef.current, {
         center: center || { lat: 0, lng: 0 },
@@ -115,21 +112,21 @@ export default function TripMap({ apiKey, items = [], center }) {
   }
 
   function fitToItems(data) {
-  if (!mapRef.current) return;
-  const coords = data.filter(i => i.lat != null && i.lng != null);
+    if (!mapRef.current) return;
+    const coords = data.filter(i => i.lat != null && i.lng != null);
 
-  if (coords.length === 1) {
-    mapRef.current.setCenter(coords[0]);
-    mapRef.current.setZoom(11);
-  } else if (coords.length > 1) {
-    const bounds = new google.maps.LatLngBounds();
-    coords.forEach(i => bounds.extend({ lat: Number(i.lat), lng: Number(i.lng) }));
-    mapRef.current.fitBounds(bounds, 64);
-  } else if (center) {
-    mapRef.current.setCenter(center);
-    mapRef.current.setZoom(6);
+    if (coords.length === 1) {
+      mapRef.current.setCenter(coords[0]);
+      mapRef.current.setZoom(11);
+    } else if (coords.length > 1) {
+      const bounds = new google.maps.LatLngBounds();
+      coords.forEach(i => bounds.extend({ lat: Number(i.lat), lng: Number(i.lng) }));
+      mapRef.current.fitBounds(bounds, 64);
+    } else if (center) {
+      mapRef.current.setCenter(center);
+      mapRef.current.setZoom(6);
+    }
   }
-}
 
   return (
     <div style={{ width: "100%", height: "100%", minHeight: 380 }}>

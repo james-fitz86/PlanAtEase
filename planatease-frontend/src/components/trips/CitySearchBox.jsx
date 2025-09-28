@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ensureGoogleMaps } from "../../utils/googleMapsLoader";
 
 export default function CitySearchBox({
   onSelect,
@@ -38,51 +39,58 @@ export default function CitySearchBox({
   }, [initialText]);
 
   useEffect(() => {
-    if (!window.google?.maps?.places || !inputRef.current) return;
+    let cancelled = false;
 
-    const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
-      types: ["(cities)"],
-      fields: [
-        "place_id",
-        "name",
-        "formatted_address",
-        "geometry.location",
-        "address_components",
-      ],
-    });
+    (async () => {
+      await ensureGoogleMaps();
 
-    ac.addListener("place_changed", () => {
-      const place = ac.getPlace();
-      if (!place || !place.place_id || !place.geometry?.location) {
-        setSelected(false);
-        return;
-      }
+      if (cancelled || !window.google?.maps?.places || !inputRef.current) return;
 
-      const lat = place.geometry.location.lat();
-      const lng = place.geometry.location.lng();
-      const city_name = getCityName(place);
-      const country_code = getCountryCode(place.address_components);
-      const formatted_address = place.formatted_address || city_name;
+      const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
+        types: ["(cities)"],
+        fields: [
+          "place_id",
+          "name",
+          "formatted_address",
+          "geometry.location",
+          "address_components",
+        ],
+      });
 
-      const payload = {
-        source: "google",
-        place_id: place.place_id,
-        formatted_address,
-        city_name,
-        country_code,
-        lat,
-        lng,
-        raw_place: place,
-      };
+      ac.addListener("place_changed", () => {
+        const place = ac.getPlace();
+        if (!place || !place.place_id || !place.geometry?.location) {
+          setSelected(false);
+          return;
+        }
 
-      setValue(city_name || formatted_address || "");
-      setSelected(true);
-      onSelect?.(payload);
-    });
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        const city_name = getCityName(place);
+        const country_code = getCountryCode(place.address_components);
+        const formatted_address = place.formatted_address || city_name;
 
-    autocompleteRef.current = ac;
+        const payload = {
+          source: "google",
+          place_id: place.place_id,
+          formatted_address,
+          city_name,
+          country_code,
+          lat,
+          lng,
+          raw_place: place,
+        };
+
+        setValue(city_name || formatted_address || "");
+        setSelected(true);
+        onSelect?.(payload);
+      });
+
+      autocompleteRef.current = ac;
+    })();
+
     return () => {
-      
+      cancelled = true;
       autocompleteRef.current = null;
     };
   }, [onSelect]);
