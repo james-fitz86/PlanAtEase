@@ -30,7 +30,9 @@ function tripTitle(trip) {
 }
 
 export default function TripDetailPage() {
-  const { id } = useParams();
+  const { tripUid, id } = useParams();
+  const tripKey = tripUid || id;
+
   const navigate = useNavigate();
   const [trip, setTrip] = useState(null);
   const [members, setMembers] = useState([]);
@@ -48,7 +50,7 @@ export default function TripDetailPage() {
 
   async function refreshMembers() {
     try {
-      const m = await listTripMembers(id);
+      const m = await listTripMembers(tripKey);
       setMembers(m);
     } catch (e) {
       console.error("Failed to refresh members", e);
@@ -60,10 +62,11 @@ export default function TripDetailPage() {
   }
 
   useEffect(() => {
+    if (!tripKey) return;
     let alive = true;
     (async () => {
       try {
-        const data = await listTripItems(id);
+        const data = await listTripItems(tripKey);
         if (!alive) return;
         setItems(Array.isArray(data) ? data : []);
         console.log("Trip items loaded:", data?.length ?? 0, data);
@@ -72,14 +75,14 @@ export default function TripDetailPage() {
       }
     })();
     return () => { alive = false; };
-  }, [id, itemsVersion]);
-
+  }, [tripKey, itemsVersion]);
 
   useEffect(() => {
+    if (!tripKey) return;
     let alive = true;
     (async () => {
       try {
-        const [t, m] = await Promise.all([getTrip(id), listTripMembers(id)]);
+        const [t, m] = await Promise.all([getTrip(tripKey), listTripMembers(tripKey)]);
         if (!alive) return;
         setTrip(t);
         setMembers(m);
@@ -92,7 +95,7 @@ export default function TripDetailPage() {
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, [tripKey]);
 
   async function handleDelete() {
     if (!trip || deleting) return;
@@ -101,7 +104,7 @@ export default function TripDetailPage() {
 
     try {
       setDeleting(true);
-      await deleteTrip(trip.id);
+      await deleteTrip(trip.uid || trip.id);
       navigate("/dashboard");
     } catch (e) {
       setDeleting(false);
@@ -118,6 +121,8 @@ export default function TripDetailPage() {
   if (!trip) {
     return <div className="p-6">Trip not found.</div>;
   }
+
+  const tripUrlId = trip.slug || trip.uid || trip.id;
 
   return (
     <PageContainer className="my-3">
@@ -140,7 +145,7 @@ export default function TripDetailPage() {
                     <button
                       type="button"
                       className="btn btn-primary btn-sm"
-                      onClick={() => navigate(`/trips/${trip.id}/edit`)}
+                      onClick={() => navigate(`/trips/${tripUrlId}/edit`)}
                     >
                       Edit
                     </button>
@@ -166,7 +171,7 @@ export default function TripDetailPage() {
 
             <div className="col-12">
               <MemberCard
-                tripId={id}
+                tripId={tripKey}
                 members={members}
                 canManage={!!trip?.is_owner}
                 tripOwnerId={trip?.owner_id}
@@ -177,7 +182,7 @@ export default function TripDetailPage() {
 
             <div className="col-12">
               <CreateTripItem
-                tripId={trip.id}
+                tripId={tripKey}
                 tripStart={trip.start_date}
                 tripEnd={trip.end_date}
                 onCreated={refreshItems}
@@ -188,7 +193,7 @@ export default function TripDetailPage() {
             <Itinerary
               start={trip.start_date}
               end={trip.end_date}
-              tripId={trip.id}
+              tripId={tripKey}
               tripLat={trip.lat}
               tripLng={trip.lng}
               refreshTick={itemsVersion}
@@ -216,3 +221,4 @@ export default function TripDetailPage() {
     </PageContainer>
   );
 }
+
