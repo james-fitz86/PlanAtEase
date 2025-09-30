@@ -7,7 +7,8 @@ if (import.meta.env.DEV) {
 }
 
 function url(path = "") {
-  return `${TRIPS_BASE}${path}/`;
+  const clean = path.replace(/^\/+/, "");
+  return clean ? `${TRIPS_BASE}/${clean}/` : `${TRIPS_BASE}/`;
 }
 
 function authHeaders() {
@@ -55,51 +56,50 @@ export function listTrips(params = {}) {
   return http("GET", target);
 }
 
-export function getTrip(id) {
-  return http("GET", url(`/${id}`));
+export function getTrip(identifier) {
+  return http("GET", url(identifier));
 }
 
 export function createTrip(payload) {
   return http("POST", url(""), payload);
 }
 
-export function updateTrip(id, partial) {
-  return http("PATCH", url(`/${id}`), partial);
+export function updateTrip(identifier, partial) {
+  return http("PATCH", url(identifier), partial);
 }
 
-export function deleteTrip(id) {
-  return http("DELETE", url(`/${id}`));
+export function deleteTrip(identifier) {
+  return http("DELETE", url(identifier));
 }
 
-export function listTripMembers(tripId) {
-  return http("GET", url(`/${tripId}/members`));
+export function listTripMembers(identifier) {
+  return http("GET", url(`${identifier}/members`));
 }
 
-
-export function addTripMember(tripId, payload) {
-  return http("POST", url(`/${tripId}/members`), payload);
+export function addTripMember(identifier, payload) {
+  return http("POST", url(`${identifier}/members`), payload);
 }
 
-export function removeTripMember(tripId, userId) {
-  return http("DELETE", url(`/${tripId}/members/${userId}`));
+export function removeTripMember(identifier, userId) {
+  return http("DELETE", url(`${identifier}/members/${userId}`));
 }
 
-export function listTripItems(tripId) {
-  return http("GET", url(`/${tripId}/items`));
+export function listTripItems(identifier) {
+  return http("GET", url(`${identifier}/items`));
 }
 
-export function getTripItem(tripId, itemId) {
-  return http("GET", url(`/${tripId}/items/${itemId}`));
+export function getTripItem(identifier, itemId) {
+  return http("GET", url(`${identifier}/items/${itemId}`));
 }
 
-export function createTripItem(tripId, payload) {
-  return http("POST", url(`/${tripId}/items`), payload);
+export function createTripItem(identifier, payload) {
+  return http("POST", url(`${identifier}/items`), payload);
 }
 
-export function updateTripItem(tripId, itemId, partial) {
-  return http("PATCH", url(`/${tripId}/items/${itemId}`), partial);
+export function updateTripItem(identifier, itemId, partial) {
+  return http("PATCH", url(`${identifier}/items/${itemId}`), partial);
 }
 
-export function deleteTripItem(tripId, itemId) {
-  return http("DELETE", url(`/${tripId}/items/${itemId}`));
+export function deleteTripItem(identifier, itemId) {
+  return http("DELETE", url(`${identifier}/items/${itemId}`));
 }
