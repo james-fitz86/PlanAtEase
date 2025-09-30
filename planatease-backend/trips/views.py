@@ -24,26 +24,51 @@ class TripRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Trip.objects.all()
 
     def get_object(self):
-        obj = super().get_object()
+        """
+        Resolve by uid, then slug, then pk (for backward compatibility).
+        Still enforce owner/member access.
+        """
+        kwargs = self.kwargs
+        trip = None
+
+        if "uid" in kwargs:
+            trip = Trip.objects.filter(uid=kwargs["uid"]).first()
+        elif "slug" in kwargs:
+            trip = Trip.objects.filter(slug=kwargs["slug"]).first()
+        elif "pk" in kwargs:
+            trip = Trip.objects.filter(pk=kwargs["pk"]).first()
+
+        if not trip:
+            raise NotFound("Trip not found.")
+
+
         u = self.request.user
-        if not (obj.owner_id == u.id or obj.members.filter(user=u).exists()):
-            raise PermissionDenied("You do not have access to this trip.")
-        return obj
+        if not (trip.owner_id == u.id or trip.members.filter(user=u).exists()):
+            raise NotFound("Trip not found.")
+        return trip
 
 
 class TripMemberListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def dispatch(self, request, *args, **kwargs):
-        self.trip = Trip.objects.filter(id=self.kwargs["trip_id"]).first()
+        """
+        Accept trip via uid/slug or legacy trip_id.
+        """
+        if "uid" in kwargs:
+            self.trip = Trip.objects.filter(uid=kwargs["uid"]).first()
+        elif "slug" in kwargs:
+            self.trip = Trip.objects.filter(slug=kwargs["slug"]).first()
+        elif "trip_id" in kwargs:
+            self.trip = Trip.objects.filter(pk=kwargs["trip_id"]).first()
         if not self.trip:
-            raise NotFound("Trip not found")
+            raise NotFound("Trip not found.")
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
         u = self.request.user
         if not (self.trip.owner_id == u.id or self.trip.members.filter(user=u).exists()):
-            raise PermissionDenied("You do not have access to this trip.")
+            raise NotFound("Trip not found.")
         return TripMember.objects.filter(trip=self.trip).select_related("user")
 
     def get_serializer_class(self):
@@ -65,7 +90,14 @@ class TripMemberDestroyView(generics.DestroyAPIView):
     lookup_url_kwarg = "user_id"
 
     def dispatch(self, request, *args, **kwargs):
-        self.trip = get_object_or_404(Trip, pk=self.kwargs["trip_id"])
+        if "uid" in kwargs:
+            self.trip = Trip.objects.filter(uid=kwargs["uid"]).first()
+        elif "slug" in kwargs:
+            self.trip = Trip.objects.filter(slug=kwargs["slug"]).first()
+        elif "trip_id" in kwargs:
+            self.trip = Trip.objects.filter(pk=kwargs["trip_id"]).first()
+        if not self.trip:
+            raise NotFound("Trip not found.")
         return super().dispatch(request, *args, **kwargs)
 
     def _resolve_user_id(self, raw):
@@ -98,13 +130,20 @@ class TripItemListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def dispatch(self, request, *args, **kwargs):
-        self.trip = get_object_or_404(Trip, pk=self.kwargs["trip_id"])
+        if "uid" in kwargs:
+            self.trip = Trip.objects.filter(uid=kwargs["uid"]).first()
+        elif "slug" in kwargs:
+            self.trip = Trip.objects.filter(slug=kwargs["slug"]).first()
+        elif "trip_id" in kwargs:
+            self.trip = Trip.objects.filter(pk=kwargs["trip_id"]).first()
+        if not self.trip:
+            raise NotFound("Trip not found.")
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
         u = self.request.user
         if not (self.trip.owner_id == u.id or self.trip.members.filter(user=u).exists()):
-            raise PermissionDenied("You do not have access to this trip.")
+            raise NotFound("Trip not found.")
         return TripItem.objects.filter(trip=self.trip).order_by("date", "start_time")
 
     def get_serializer_class(self):
@@ -129,7 +168,14 @@ class TripItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     lookup_url_kwarg = "item_id"
 
     def dispatch(self, request, *args, **kwargs):
-        self.trip = get_object_or_404(Trip, pk=self.kwargs["trip_id"])
+        if "uid" in kwargs:
+            self.trip = Trip.objects.filter(uid=kwargs["uid"]).first()
+        elif "slug" in kwargs:
+            self.trip = Trip.objects.filter(slug=kwargs["slug"]).first()
+        elif "trip_id" in kwargs:
+            self.trip = Trip.objects.filter(pk=kwargs["trip_id"]).first()
+        if not self.trip:
+            raise NotFound("Trip not found.")
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
