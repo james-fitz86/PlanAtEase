@@ -22,12 +22,12 @@ class TripSerializer(serializers.ModelSerializer):
     owner_id = serializers.IntegerField(source="owner.id", read_only=True)
     owner_email = serializers.EmailField(source="owner.email", read_only=True)
 
-
     class Meta:
         model = Trip
-        read_only_fields = ("id", "owner", "created_at")
+        read_only_fields = ("id", "owner", "created_at", "uid", "slug")
         fields = (
-            "id", "owner", "name", "start_date", "end_date",
+            "id", "uid", "slug",
+            "owner", "name", "start_date", "end_date",
             "source", "place_id", "formatted_address",
             "city_name", "country_code", "lat", "lng", "raw_place",
             "created_at", "members", "is_owner", "owner_id", "owner_email",
@@ -60,10 +60,10 @@ class TripSerializer(serializers.ModelSerializer):
 
         return instance
 
-    
     def get_is_owner(self, obj):
         request = self.context.get("request")
         return bool(request and request.user.is_authenticated and obj.owner_id == request.user.id)
+
     
 class TripMemberCreateSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(write_only=True)
