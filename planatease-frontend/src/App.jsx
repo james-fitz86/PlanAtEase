@@ -89,7 +89,7 @@ export default function App() {
             }
           />
           <Route
-            path="/trips/:id"
+            path="/trips/:tripUid"
             element={
               <ProtectedRoute>
                 <TripDetailPage />
@@ -97,7 +97,23 @@ export default function App() {
             }
           />
           <Route
-            path="/trips/:id/edit"
+            path="/trips/:tripUid/edit"
+            element={
+              <ProtectedRoute>
+                <TripEditPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trips/:id(\d+)"
+            element={
+              <ProtectedRoute>
+                <TripDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trips/:id(\d+)/edit"
             element={
               <ProtectedRoute>
                 <TripEditPage />
