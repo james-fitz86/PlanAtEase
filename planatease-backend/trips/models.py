@@ -3,6 +3,8 @@ from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import Q, F
 from django.core.exceptions import ValidationError
+import uuid
+from django.utils.text import slugify
 
 # Create your models here.
 
@@ -39,6 +41,23 @@ class Trip(models.Model):
         blank=True,
     )
 
+    uid = models.UUIDField(
+        null=True,
+        blank=True,
+        db_index=True,
+        default=uuid.uuid4,
+        editable=False,
+        help_text="Stable public identifier (will replace numeric id in URLs).",
+    )
+
+    slug = models.SlugField(
+        max_length=160,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Human-friendly identifier for URLs (not yet enforced unique).",
+    )
+
     class Meta:
         constraints = [
             models.CheckConstraint(check=Q(end_date__gte=F("start_date")), name="trip_end_on_or_after_start"),
@@ -55,6 +74,26 @@ class Trip(models.Model):
     def __str__(self):
         label = self.name or self.city_name or self.formatted_address or "Trip"
         return f"{label} [{self.start_date} → {self.end_date}]"
+    
+    def _ensure_identifiers(self):
+        if not self.uid:
+            self.uid = uuid.uuid4()
+
+        if not self.slug:
+            base = self.name or self.city_name or self.formatted_address or "trip"
+            s = slugify(base)[:150] or f"trip-{str(self.uid)[:8]}"
+
+            candidate = s
+            Model = self.__class__
+            while Model.objects.filter(slug=candidate).exclude(pk=self.pk).exists():
+                candidate = f"{s}-{uuid.uuid4().hex[:6]}"
+                if len(candidate) > 160:
+                    candidate = candidate[:160]
+            self.slug = candidate
+
+    def save(self, *args, **kwargs):
+        self._ensure_identifiers()
+        return super().save(*args, **kwargs)
 
 class TripMember(models.Model):
     class Role(models.TextChoices):
