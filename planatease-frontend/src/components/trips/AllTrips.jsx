@@ -11,6 +11,11 @@ function formatDate(dateStr) {
   return `${day}/${month}/${year}`;
 }
 
+function tripPath(t) {
+  const ident = (t.slug && /^[A-Za-z][-\w]*$/.test(t.slug)) ? t.slug : (t.uid || t.id);
+  return `/trips/${ident}`;
+}
+
 export default function AllTrips() {
   const [trips, setTrips] = useState(null);
   const [err, setErr] = useState("");
@@ -36,8 +41,8 @@ export default function AllTrips() {
   return (
     <div className="row g-3">
       {trips.map((t) => (
-        <div className="col-12 col-md-6" key={t.id}>
-          <Link to={`/trips/${t.id}`} className="text-decoration-none">
+        <div className="col-12 col-md-6" key={t.uid || t.slug || t.id}>
+          <Link to={tripPath(t)} className="text-decoration-none">
             <div className="card h-100">
               <div className="card-body">
                 <h5 className="card-title mb-1">
@@ -58,3 +63,4 @@ export default function AllTrips() {
     </div>
   );
 }
+
