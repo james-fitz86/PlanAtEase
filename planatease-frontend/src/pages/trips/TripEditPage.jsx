@@ -5,15 +5,20 @@ import DateRangeInput from "../../components/trips/DateRangeInput";
 import { getTrip, updateTrip } from "../../api/trips";
 
 export default function TripEditPage() {
-  const { id } = useParams();
+  const { tripUid, id } = useParams();
+  const tripKey = tripUid || id;
+
   const navigate = useNavigate();
   const [form, setForm] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [tripMeta, setTripMeta] = useState(null);
 
   useEffect(() => {
+    if (!tripKey) return;
     (async () => {
       try {
-        const t = await getTrip(id);
+        const t = await getTrip(tripKey);
+        setTripMeta({ uid: t.uid, slug: t.slug, id: t.id });
         setForm({
           name: t.name || "",
           start_date: t.start_date || "",
@@ -31,7 +36,7 @@ export default function TripEditPage() {
         setLoading(false);
       }
     })();
-  }, [id]);
+  }, [tripKey]);
 
   const canSubmit = useMemo(() => {
     if (!form) return false;
@@ -42,6 +47,11 @@ export default function TripEditPage() {
       form.source === "google"
     );
   }, [form]);
+
+  function targetPath(meta) {
+    const ident = meta?.slug || meta?.uid || meta?.id || tripKey;
+    return `/trips/${ident}`;
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -60,8 +70,8 @@ export default function TripEditPage() {
         lng: form.lng,
         raw_place: form.raw_place,
       };
-      await updateTrip(id, payload);
-      navigate(`/trips/${id}`);
+      const updated = await updateTrip(tripKey, payload);
+      navigate(targetPath(updated));
     } catch (err) {
       alert(err.body?.detail || err.message || "Failed to update trip");
     }
@@ -76,58 +86,59 @@ export default function TripEditPage() {
           <h1 className="h5 mb-0">Edit Trip</h1>
         </div>
         <div className="card-body">
-            <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                <label className="form-label">Trip name (optional)</label>
-                <input
-                    type="text"
-                    value={form.name}
-                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                    className="form-control"
-                    placeholder="e.g. Milan City Break"
-                />
-                </div>
+          <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label className="form-label">Trip name (optional)</label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                className="form-control"
+                placeholder="e.g. Milan City Break"
+              />
+            </div>
 
-                <div className="mb-3">
-                    <CitySearchBox
-                        initialText={
-                            form.formatted_address ||
-                            [form.city_name, form.country_code].filter(Boolean).join(", ")
-                        }
-                        onSelect={(city) => setForm((f) => ({ ...f, ...city }))}
-                    />
-                </div>
+            <div className="mb-3">
+              <CitySearchBox
+                initialText={
+                  form.formatted_address ||
+                  [form.city_name, form.country_code].filter(Boolean).join(", ")
+                }
+                onSelect={(city) => setForm((f) => ({ ...f, ...city }))}
+              />
+            </div>
 
-                <div className="mb-3">
-                <DateRangeInput
-                    startDate={form.start_date}
-                    endDate={form.end_date}
-                    onChange={({ startDate, endDate }) =>
-                    setForm((f) => ({ ...f, start_date: startDate, end_date: endDate }))
-                    }
-                />
-                </div>
+            <div className="mb-3">
+              <DateRangeInput
+                startDate={form.start_date}
+                endDate={form.end_date}
+                onChange={({ startDate, endDate }) =>
+                  setForm((f) => ({ ...f, start_date: startDate, end_date: endDate }))
+                }
+              />
+            </div>
 
-                <div className="d-flex justify-content-center gap-2 mt-3">
-                    <button
-                        type="submit"
-                        disabled={!canSubmit}
-                        className={`btn ${canSubmit ? "btn-primary" : "btn-secondary disabled"}`}
-                    >
-                        Save changes
-                    </button>
+            <div className="d-flex justify-content-center gap-2 mt-3">
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className={`btn ${canSubmit ? "btn-primary" : "btn-secondary disabled"}`}
+              >
+                Save changes
+              </button>
 
-                    <button
-                        type="button"
-                        className="btn btn-outline-secondary"
-                        onClick={() => navigate(`/trips/${id}`)}
-                    >
-                        Cancel
-                    </button>
-                </div>
-            </form>
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => navigate(targetPath(tripMeta))}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
   );
 }
+
