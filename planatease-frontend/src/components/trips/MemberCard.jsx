@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { addTripMember, removeTripMember } from "../../api/trips";
+import { addTripMember, removeTripMember, updateTripMember } from "../../api/trips";
 
 function currentUserIdFromJWT() {
   try {
@@ -30,6 +30,9 @@ export default function MembersCard({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [removingId, setRemovingId] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const [savingRole, setSavingRole] = useState(false);
+  const [editError, setEditError] = useState("");
   const navigate = useNavigate();
   const meId = currentUserIdFromJWT();
   const ownerIdNum = tripOwnerId == null ? null : Number(tripOwnerId);
@@ -76,6 +79,48 @@ export default function MembersCard({
     const raw = m.user_id ?? m.user ?? m.userId ?? (m.user && m.user.id);
     return raw == null ? null : Number(raw);
   };
+  
+  function openChangeRole(member) {
+    const uid = getUid(member);
+    if (uid == null) return;
+    if (ownerIdNum != null && uid === ownerIdNum) return;
+
+    setEditError("");
+    setEditing({
+      userId: uid,
+      email: member.user_email,
+      role: member.role || "viewer",
+    });
+
+    const modalEl = document.getElementById("editMemberModal");
+    const modal =
+      window.bootstrap?.Modal.getInstance(modalEl) ||
+      new window.bootstrap.Modal(modalEl);
+    modal.show();
+  }
+
+  async function handleSaveRole(e) {
+    e?.preventDefault?.();
+    if (!editing) return;
+    setSavingRole(true);
+    setEditError("");
+    try {
+      await updateTripMember(tripId, editing.userId, { role: editing.role });
+      refreshMembers?.();
+
+      const modalEl = document.getElementById("editMemberModal");
+      const modal =
+        window.bootstrap?.Modal.getInstance(modalEl) ||
+        new window.bootstrap.Modal(modalEl);
+      modal.hide();
+      setEditing(null);
+    } catch (err) {
+      const msg = err.body?.detail || err.body?.role?.[0] || "Failed to update role";
+      setEditError(msg);
+    } finally {
+      setSavingRole(false);
+    }
+  }
 
   return (
     <div className="card h-100">
@@ -117,18 +162,33 @@ export default function MembersCard({
 
               return (
                 <li key={m.id} className="d-flex justify-content-between py-1">
-                  <span>{m.user_email}</span>
+                  <span>
+                    {m.user_email}
+                    {isMe && !isMeOwner && (
+                      <span className="ms-2 badge bg-secondary">You</span>
+                    )}
+                  </span>
                   <span className="text-muted d-flex gap-2 align-items-center">
                     {m.role}
                     {canManage && uid != null && !isOwnerRow && (
-                      <button
-                        type="button"
-                        className="btn btn-link btn-sm text-danger p-0"
-                        disabled={isRowBusy}
-                        onClick={() => handleRemove(uid)}
-                      >
-                        {isRowBusy ? "Removing…" : "Remove"}
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn-link btn-sm p-0"
+                          onClick={() => openChangeRole(m)}
+                        >
+                          Change role
+                        </button>
+                        <span className="text-muted">·</span>
+                        <button
+                          type="button"
+                          className="btn btn-link btn-sm text-danger p-0"
+                          disabled={isRowBusy}
+                          onClick={() => handleRemove(uid)}
+                        >
+                          {isRowBusy ? "Removing…" : "Remove"}
+                        </button>
+                      </>
                     )}
                     {!canManage && isMe && (
                       <button
@@ -148,6 +208,7 @@ export default function MembersCard({
         )}
       </div>
 
+      {/* Add Member Modal*/}
       <div className="modal fade" id="addMemberModal" tabIndex="-1" aria-hidden="true">
         <div className="modal-dialog">
           <form className="modal-content" onSubmit={handleAdd}>
@@ -190,6 +251,68 @@ export default function MembersCard({
           </form>
         </div>
       </div>
+
+      {/* Edit/Change Role Modal */}
+      <div className="modal fade" id="editMemberModal" tabIndex="-1" aria-hidden="true">
+        <div className="modal-dialog">
+          <form className="modal-content" onSubmit={handleSaveRole}>
+            <div className="modal-header">
+              <h5 className="modal-title">Change member role</h5>
+              <button
+                type="button"
+                className="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+                onClick={() => setEditing(null)}
+              />
+            </div>
+            <div className="modal-body">
+              <div className="mb-3">
+                <label className="form-label">Member</label>
+                <input
+                  type="email"
+                  className="form-control"
+                  value={editing?.email || ""}
+                  readOnly
+                  disabled
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Role</label>
+                <select
+                  className="form-select"
+                  value={editing?.role || "viewer"}
+                  onChange={(e) =>
+                    setEditing((prev) => (prev ? { ...prev, role: e.target.value } : prev))
+                  }
+                >
+                  <option value="viewer">Viewer</option>
+                  <option value="editor">Editor</option>
+                </select>
+              </div>
+              {editError && <div className="alert alert-danger py-2">{editError}</div>}
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                data-bs-dismiss="modal"
+                onClick={() => setEditing(null)}
+                disabled={savingRole}
+              >
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={savingRole}>
+                {savingRole ? "Saving…" : "Save changes"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }
+
+
+
+
