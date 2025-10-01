@@ -8,6 +8,7 @@ const TYPE_COLORS = {
   transport: "#ff8c00",
   activity: "#228b22",
   sightseeing: "#6a5acd",
+  other: "#808080",
   default: "#808080",
 };
 
@@ -21,9 +22,7 @@ export default function TripMap({ apiKey, items = [], center }) {
     let cancelled = false;
 
     async function init() {
-      console.log("MAP_ID from env:", import.meta.env.VITE_GOOGLE_MAPS_MAP_ID);
       await ensureGoogleMaps();
-
       if (cancelled) return;
 
       const { Map } = await google.maps.importLibrary("maps");
@@ -39,7 +38,6 @@ export default function TripMap({ apiKey, items = [], center }) {
       });
 
       infoRef.current = new google.maps.InfoWindow();
-
       renderMarkers(items);
       fitToItems(items);
     }
@@ -87,7 +85,8 @@ export default function TripMap({ apiKey, items = [], center }) {
     for (const item of data) {
       if (item.lat == null || item.lng == null) continue;
 
-      const color = TYPE_COLORS[item.item_type] || TYPE_COLORS.default;
+      const typeKey = (item.item_type || "default").toLowerCase();
+      const color = TYPE_COLORS[typeKey] || TYPE_COLORS.default;
 
       const pin = new PinElement({
         background: color,
@@ -113,14 +112,14 @@ export default function TripMap({ apiKey, items = [], center }) {
 
   function fitToItems(data) {
     if (!mapRef.current) return;
-    const coords = data.filter(i => i.lat != null && i.lng != null);
+    const coords = data.filter((i) => i.lat != null && i.lng != null);
 
     if (coords.length === 1) {
-      mapRef.current.setCenter(coords[0]);
+      mapRef.current.setCenter({ lat: Number(coords[0].lat), lng: Number(coords[0].lng) });
       mapRef.current.setZoom(11);
     } else if (coords.length > 1) {
       const bounds = new google.maps.LatLngBounds();
-      coords.forEach(i => bounds.extend({ lat: Number(i.lat), lng: Number(i.lng) }));
+      coords.forEach((i) => bounds.extend({ lat: Number(i.lat), lng: Number(i.lng) }));
       mapRef.current.fitBounds(bounds, 64);
     } else if (center) {
       mapRef.current.setCenter(center);
