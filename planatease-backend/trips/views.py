@@ -85,8 +85,14 @@ class TripMemberListCreateView(generics.ListCreateAPIView):
         serializer.save()
 
 
-class TripMemberDestroyView(generics.DestroyAPIView):
+class TripMemberDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET    /trips/<id|uid|slug>/members/<user_id>/
+    PATCH  /trips/<id|uid|slug>/members/<user_id>/  {"role": "viewer"|"editor"}  (owner only)
+    DELETE /trips/<id|uid|slug>/members/<user_id>/  (owner or self)
+    """
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = TripMemberSerializer
     lookup_url_kwarg = "user_id"
 
     def dispatch(self, request, *args, **kwargs):
@@ -111,7 +117,32 @@ class TripMemberDestroyView(generics.DestroyAPIView):
     def get_object(self):
         target_user_id = self._resolve_user_id(self.kwargs[self.lookup_url_kwarg])
         member = get_object_or_404(TripMember, trip=self.trip, user_id=target_user_id)
+        u = self.request.user
+        if not (self.trip.owner_id == u.id or self.trip.members.filter(user=u).exists()):
+            raise NotFound("Trip not found.")
         return member
+
+    # --- UPDATE (role change) ---
+    def partial_update(self, request, *args, **kwargs):
+        """
+        Owner-only role change. Owner's role cannot be changed.
+        """
+        if request.user.id != self.trip.owner_id:
+            raise PermissionDenied("Only the owner can change roles.")
+
+        member = self.get_object()
+        if member.user_id == self.trip.owner_id:
+            raise PermissionDenied("Cannot change the owner's role.")
+
+        serializer = self.get_serializer(member, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        if set(serializer.validated_data.keys()) - {"role"}:
+            raise PermissionDenied("Only the role can be updated.")
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
         member = self.get_object()
@@ -124,7 +155,6 @@ class TripMemberDestroyView(generics.DestroyAPIView):
 
         member.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
 
 class TripItemListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
