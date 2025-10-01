@@ -84,6 +84,10 @@ export function removeTripMember(identifier, userId) {
   return http("DELETE", url(`${identifier}/members/${userId}`));
 }
 
+export function updateTripMember(identifier, userId, partial) {
+  return http("PATCH", url(`${identifier}/members/${userId}`), partial);
+}
+
 export function listTripItems(identifier) {
   return http("GET", url(`${identifier}/items`));
 }
