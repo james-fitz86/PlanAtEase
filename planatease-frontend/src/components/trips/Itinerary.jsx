@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { listTripItems, deleteTripItem } from "../../api/trips";
+import { listTripItems, deleteTripItem as authedDeleteTripItem } from "../../api/trips";
 import EditTripItem from "./EditTripItem";
 import { WeatherProvider, WeatherPillInline, WeatherPillMobile, WeatherDetails } from "./WeatherForecast";
 
@@ -23,13 +23,10 @@ function getTripDays(start, end) {
   const s = parseLocalDate(start);
   const e = parseLocalDate(end);
   if (!s || !e) return [];
-
   const [from, to] = s <= e ? [s, e] : [e, s];
-
   const days = [];
   let cur = new Date(from.getFullYear(), from.getMonth(), from.getDate());
   const last = new Date(to.getFullYear(), to.getMonth(), to.getDate());
-
   while (cur <= last) {
     days.push(new Date(cur));
     cur.setDate(cur.getDate() + 1);
@@ -58,13 +55,11 @@ function useLocalStorage(key, initialValue) {
       return initialValue;
     }
   });
-
   useEffect(() => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch {}
   }, [key, value]);
-
   return [value, setValue];
 }
 
@@ -73,13 +68,12 @@ function formatTime(t) {
   return t.slice(0, 5);
 }
 
-function ItemRow({ it, onDeleted, onUpdated, onEdit, editModalId }) {
-  const rowKey = `itemrow:${it.trip_id ?? "trip"}:${it.id}`;
+function ItemRow({ it, onDeleted, onEdit, editModalId, deleteFn, parentId, allowEdit }) {
+  const rowKey = `itemrow:${parentId ?? "trip"}:${it.id}`;
   const [open, setOpen] = useLocalStorage(rowKey, false);
   const [deleting, setDeleting] = useState(false);
 
   const toggle = () => setOpen((v) => !v);
-
   const detailsId = `it-details-${it.id}`;
   const handleRowClick = () => toggle();
   const handleRowKeyDown = (e) => {
@@ -117,7 +111,7 @@ function ItemRow({ it, onDeleted, onUpdated, onEdit, editModalId }) {
 
     try {
       setDeleting(true);
-      await deleteTripItem(it.trip_id, it.id);
+      await deleteFn(parentId, it.id);
       onDeleted?.(it.id);
     } catch (e) {
       alert(e.body?.detail || e.message || "Failed to delete item");
@@ -153,38 +147,36 @@ function ItemRow({ it, onDeleted, onUpdated, onEdit, editModalId }) {
         </div>
 
         {open && (
-          <div
-            id={detailsId}
-            className="mt-1 text-muted small"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div id={detailsId} className="mt-1 text-muted small" onClick={(e) => e.stopPropagation()}>
             {description && <p className="mb-2">{description}</p>}
 
-            <div className="d-flex gap-2">
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-primary"
-                data-bs-toggle="modal"
-                data-bs-target={`#${editModalId}`}
-                title="Edit item"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit?.(it);
-                }}
-              >
-                Edit
-              </button>
+            {allowEdit && (
+              <div className="d-flex gap-2">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary"
+                  data-bs-toggle="modal"
+                  data-bs-target={`#${editModalId}`}
+                  title="Edit item"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit?.(it);
+                  }}
+                >
+                  Edit
+                </button>
 
-              <button
-                type="button"
-                className="btn btn-outline-danger btn-sm"
-                onClick={handleDeleteItem}
-                disabled={deleting}
-                title="Delete item"
-              >
-                {deleting ? "Deleting…" : "Delete"}
-              </button>
-            </div>
+                <button
+                  type="button"
+                  className="btn btn-outline-danger btn-sm"
+                  onClick={handleDeleteItem}
+                  disabled={deleting}
+                  title="Delete item"
+                >
+                  {deleting ? "Deleting…" : "Delete"}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -192,17 +184,23 @@ function ItemRow({ it, onDeleted, onUpdated, onEdit, editModalId }) {
   );
 }
 
-
-
-function ItineraryList({ days, itemsByDate, storageKey, onItemDeleted, onEdit, editModalId }) {
+function ItineraryList({
+  days,
+  itemsByDate,
+  storageKey,
+  onItemDeleted,
+  onEdit,
+  editModalId,
+  deleteFn,
+  parentId,
+  allowEdit,
+}) {
   const [openArray, setOpenArray] = useLocalStorage(`${storageKey}:openSet`, []);
   const openSet = useMemo(() => new Set(openArray), [openArray]);
 
   useEffect(() => {
     const valid = openArray.filter((i) => i < days.length);
-    if (valid.length !== openArray.length) {
-      setOpenArray(valid);
-    }
+    if (valid.length !== openArray.length) setOpenArray(valid);
   }, [days.length, openArray, setOpenArray]);
 
   const toggle = (i) => {
@@ -241,6 +239,9 @@ function ItineraryList({ days, itemsByDate, storageKey, onItemDeleted, onEdit, e
                       onDeleted={(id) => onItemDeleted(key, id)}
                       onEdit={onEdit}
                       editModalId={editModalId}
+                      deleteFn={deleteFn}
+                      parentId={parentId}
+                      allowEdit={allowEdit}
                     />
                   ))
                 )}
@@ -253,10 +254,19 @@ function ItineraryList({ days, itemsByDate, storageKey, onItemDeleted, onEdit, e
   );
 }
 
-
-function ItineraryCarousel({ days, itemsByDate, storageKey, tripId, tripLat, tripLng, onItemDeleted, onEdit, editModalId, onDayFilterChange }) {
+function ItineraryCarousel({
+  days,
+  itemsByDate,
+  storageKey,
+  tripId,
+  tripLat,
+  tripLng,
+  onItemDeleted,
+  onEdit,
+  editModalId,
+  onDayFilterChange,
+}) {
   const [idx, setIdx] = useLocalStorage(`${storageKey}:idx`, 0);
-
   if (!days.length) return <p className="text-muted mb-0">No days.</p>;
 
   const safeIdx = Math.min(Math.max(Number.isFinite(idx) ? idx : 0, 0), days.length - 1);
@@ -270,10 +280,6 @@ function ItineraryCarousel({ days, itemsByDate, storageKey, tripId, tripLat, tri
 
   const day = days[safeIdx];
   const key = ymdLocal(day);
-
-  useEffect(() => {
-    console.debug("Day key ->", key, "tripId ->", tripId);
-  }, [key, tripId]);
 
   const items = itemsByDate.get(key) || [];
 
@@ -332,9 +338,7 @@ function ItineraryCarousel({ days, itemsByDate, storageKey, tripId, tripLat, tri
           <WeatherPillMobile />
         </div>
 
-        
         <WeatherDetails />
-        
       </WeatherProvider>
 
       <div key={key} className="p-3 text-start">
@@ -348,6 +352,9 @@ function ItineraryCarousel({ days, itemsByDate, storageKey, tripId, tripLat, tri
               onDeleted={(id) => onItemDeleted(key, id)}
               onEdit={onEdit}
               editModalId={editModalId}
+              deleteFn={() => {}}
+              parentId={tripId}
+              allowEdit={false}
             />
           ))
         )}
@@ -360,13 +367,36 @@ function ItineraryCarousel({ days, itemsByDate, storageKey, tripId, tripLat, tri
   );
 }
 
+export default function Itinerary({
+  start,
+  end,
+  tripId,
+  parentId,
+  tripLat,
+  tripLng,
+  refreshTick = 0,
+  onItemsChanged,
+  onDayFilterChange,
+  listFn,
+  deleteFn,
+  updateFn,
+  allowDayView = true,
+  allowEdit = true,
+}) {
+  if (!tripId && !parentId) return null;
 
-export default function Itinerary({ start, end, tripId, tripLat, tripLng,  refreshTick = 0, onItemsChanged, onDayFilterChange }) {
-  if (!tripId) return null;
-
+  const effectiveParentId = parentId ?? tripId;
   const days = useMemo(() => getTripDays(start, end), [start, end]);
-  const storageKey = `itinerary:${tripId}`;
+  const storageKey = `itinerary:${effectiveParentId}`;
   const [view, setView] = useLocalStorage(`${storageKey}:view`, "list");
+
+  useEffect(() => {
+    if (!allowDayView && view !== "list") {
+      setView("list");
+      onDayFilterChange?.(null);
+    }
+  }, [allowDayView, view, setView, onDayFilterChange]);
+
   useEffect(() => {
     if (view === "list") onDayFilterChange?.(null);
   }, [view, onDayFilterChange]);
@@ -374,9 +404,8 @@ export default function Itinerary({ start, end, tripId, tripLat, tripLng,  refre
   const [itemsByDate, setItemsByDate] = useState(() => new Map());
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-
   const [selectedItem, setSelectedItem] = useState(null);
-  const EDIT_MODAL_ID = `tripItemModal-${tripId}-edit`;
+  const EDIT_MODAL_ID = `tripItemModal-${effectiveParentId}-edit`;
 
   const compareItems = (a, b) => {
     const at = a.start_time || "";
@@ -431,9 +460,9 @@ export default function Itinerary({ start, end, tripId, tripLat, tripLng,  refre
       try {
         setLoading(true);
         setErr("");
-        const data = await listTripItems(tripId);
+        const fetcher = listFn || listTripItems;
+        const data = await fetcher(effectiveParentId);
         const items = Array.isArray(data?.results) ? data.results : data || [];
-
         const map = new Map();
         for (const it of items) {
           const d = it.date;
@@ -441,11 +470,7 @@ export default function Itinerary({ start, end, tripId, tripLat, tripLng,  refre
           if (!map.has(d)) map.set(d, []);
           map.get(d).push(it);
         }
-
-        for (const [k, arr] of map) {
-          arr.sort(compareItems);
-        }
-
+        for (const [k, arr] of map) arr.sort(compareItems);
         if (alive) setItemsByDate(map);
       } catch (e) {
         if (alive) setErr(e.body?.detail || e.message || "Failed to load trip items");
@@ -456,7 +481,9 @@ export default function Itinerary({ start, end, tripId, tripLat, tripLng,  refre
     return () => {
       alive = false;
     };
-  }, [tripId, refreshTick]);
+  }, [effectiveParentId, listFn, refreshTick]);
+
+  const effectiveDelete = deleteFn || authedDeleteTripItem;
 
   return (
     <div className="col-12">
@@ -470,17 +497,22 @@ export default function Itinerary({ start, end, tripId, tripLat, tripLng,  refre
                   <button
                     type="button"
                     className={`btn ${view === "list" ? "btn-primary" : "btn-outline-primary"}`}
-                    onClick={() => { setView("list"); onDayFilterChange?.(null); }}
+                    onClick={() => {
+                      setView("list");
+                      onDayFilterChange?.(null);
+                    }}
                   >
                     List View
                   </button>
-                  <button
-                    type="button"
-                    className={`btn ${view === "day" ? "btn-primary" : "btn-outline-primary"}`}
-                    onClick={() => setView("day")}
-                  >
-                    Day View
-                  </button>
+                  {allowDayView && (
+                    <button
+                      type="button"
+                      className={`btn ${view === "day" ? "btn-primary" : "btn-outline-primary"}`}
+                      onClick={() => setView("day")}
+                    >
+                      Day View
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -499,6 +531,9 @@ export default function Itinerary({ start, end, tripId, tripLat, tripLng,  refre
                   onItemDeleted={handleItemDeleted}
                   onEdit={setSelectedItem}
                   editModalId={EDIT_MODAL_ID}
+                  deleteFn={effectiveDelete}
+                  parentId={effectiveParentId}
+                  allowEdit={allowEdit}
                 />
               ) : (
                 <ItineraryCarousel
@@ -523,9 +558,11 @@ export default function Itinerary({ start, end, tripId, tripLat, tripLng,  refre
         modalId={EDIT_MODAL_ID}
         item={selectedItem}
         tripId={tripId}
+        parentId={effectiveParentId}
         tripStart={start}
         tripEnd={end}
         onSaved={handleItemUpdated}
+        updateFn={updateFn}
       />
     </div>
   );
