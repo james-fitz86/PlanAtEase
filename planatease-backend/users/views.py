@@ -16,7 +16,7 @@ class RegisterView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         user = serializer.save(is_active=False)
-        if user.is_active:  # guard against serializer defaulting to True
+        if user.is_active:
             user.is_active = False
             user.save(update_fields=["is_active"])
 
@@ -51,8 +51,19 @@ class LogoutView(APIView):
 class MeView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserSerializer
+
     def get_object(self):
         return self.request.user
+    
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        if user.is_authenticated and user.is_active:
+            try:
+                from trips.services import promote_guest_trips_to_user
+                promote_guest_trips_to_user(request, user)
+            except Exception:
+                pass
+        return super().get(request, *args, **kwargs)
 
 class ChangePasswordView(generics.UpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
