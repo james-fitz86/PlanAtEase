@@ -1,4 +1,4 @@
-import {useState } from "react";
+import { useState } from "react";
 import TripItemModal from "./TripItemModal";
 
 const TYPE_BUTTONS = [
@@ -10,9 +10,18 @@ const TYPE_BUTTONS = [
   { label: "Sightseeing", btnClass: "btn-sightseeing trip-button" },
 ];
 
-export default function CreateTripItem({ tripId, onCreated, tripStart, tripEnd, defaultDate }) {
+export default function CreateTripItem({
+  tripId,
+  parentId,
+  onCreated,
+  tripStart,
+  tripEnd,
+  defaultDate,
+  createFn,
+}) {
   const [selectedTypeLabel, setSelectedTypeLabel] = useState(null);
-  const CREATE_MODAL_ID = `tripItemModal-${tripId}-create`;
+  const effectiveParentId = parentId ?? tripId;
+  const CREATE_MODAL_ID = `tripItemModal-${effectiveParentId}-create`;
 
   return (
     <div className="col-12">
@@ -44,10 +53,12 @@ export default function CreateTripItem({ tripId, onCreated, tripStart, tripEnd, 
         modalId={CREATE_MODAL_ID}
         selectedTypeLabel={selectedTypeLabel}
         tripId={tripId}
+        parentId={effectiveParentId}
         tripStart={tripStart}
         tripEnd={tripEnd}
         onCreated={onCreated}
         defaultDate={defaultDate}
+        createFn={createFn}
       />
     </div>
   );
