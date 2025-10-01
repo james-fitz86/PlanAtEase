@@ -10,11 +10,12 @@ export default function EditTripItem({
   modalId,
   item,
   tripId,
+  parentId,
   tripStart,
   tripEnd,
   onSaved,
+  updateFn,
 }) {
-
   return (
     <TripItemModal
       modalId={modalId}
@@ -22,9 +23,11 @@ export default function EditTripItem({
       item={item}
       selectedTypeLabel={toDisplayLabel(item)}
       tripId={tripId}
+      parentId={parentId}
       tripStart={tripStart}
       tripEnd={tripEnd}
       onSaved={onSaved}
+      updateFn={updateFn}
     />
   );
 }
