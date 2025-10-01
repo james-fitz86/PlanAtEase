@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { useEffect } from "react";
 import logo from "./assets/images/planatease_logo.png";
 import Header from "./components/base/Header.jsx";
@@ -16,6 +16,8 @@ import TripEditPage from "./pages/trips/TripEditPage.jsx";
 import Profile from "./pages/Profile.jsx";
 import ActivateAccount from "./pages/ActivateAccount.jsx";
 import CheckEmail from "./pages/CheckEmail.jsx";
+import GuestTripDetailPage from "./pages/trips/GuestTripDetailPage.jsx";
+import GuestTripEditPage from "./pages/trips/GuestTripEditPage.jsx";
 import "./App.css";
 
 import { decodeJwt, secondsUntilExpiry } from "./auth/jwt";
@@ -32,6 +34,12 @@ function Home() {
       />
       <h1>Welcome to PlanAtEase</h1>
       <h2>Your Smart Travel Itinerary Builder</h2>
+
+      <p style={{ marginTop: "16px" }}>
+        <Link to="/trips/create" className="btn btn-primary">
+          Get started — Create a Trip
+        </Link>
+      </p>
     </div>
   );
 }
@@ -80,14 +88,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/trips/create"
-            element={
-              <ProtectedRoute>
-                <CreateTripPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/trips/create" element={<CreateTripPage />} />
           <Route
             path="/trips/:tripUid"
             element={
@@ -124,6 +125,8 @@ export default function App() {
           <Route path="/password-reset" element={<ForgotPassword />} />
           <Route path="/password-reset/confirm/:uid/:token" element={<ResetPassword />} />
           <Route path="/password/change" element={<ResetPassword />} />
+          <Route path="/guest/trips/:guestTripId" element={<GuestTripDetailPage />} />
+          <Route path="/guest/trips/:guestTripId/edit" element={<GuestTripEditPage />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </main>
