@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import CitySearchBox from "../../components/trips/CitySearchBox";
 import DateRangeInput from "../../components/trips/DateRangeInput";
 import { createTrip } from "../../api/trips";
+import { guestCreateTrip } from "../../api/trips_guest";
+import { getTokens } from "../../auth/storage";
 
 export default function CreateTripPage() {
   const navigate = useNavigate();
@@ -34,25 +36,38 @@ export default function CreateTripPage() {
     e.preventDefault();
     if (!canSubmit) return;
 
-    try {
-      const payload = {
-        name: form.name || form.city_name || form.formatted_address,
-        start_date: form.start_date,
-        end_date: form.end_date,
-        source: form.source,
-        place_id: form.place_id,
-        formatted_address: form.formatted_address,
-        city_name: form.city_name,
-        country_code: form.country_code,
-        lat: form.lat,
-        lng: form.lng,
-        raw_place: form.raw_place,
-      };
+    const payload = {
+      name: form.name || form.city_name || form.formatted_address,
+      start_date: form.start_date,
+      end_date: form.end_date,
+      source: form.source,
+      place_id: form.place_id,
+      formatted_address: form.formatted_address,
+      city_name: form.city_name,
+      country_code: form.country_code,
+      lat: form.lat,
+      lng: form.lng,
+      raw_place: form.raw_place,
+    };
 
-      const created = await createTrip(payload);
-      navigate(`/trips/${created.id}`);
+    try {
+      const tokens = getTokens();
+      const isAuthed = !!tokens?.access;
+
+      if (isAuthed) {
+        const created = await createTrip(payload);
+        navigate(`/trips/${created.id}`);
+      } else {
+        const created = await guestCreateTrip(payload);
+        navigate(`/guest/trips/${created.id}`);
+      }
     } catch (err) {
-      alert(err.body?.detail || err.message || "Failed to create trip");
+      const msg =
+        err?.body?.detail ||
+        (typeof err?.body === "string" ? err.body : null) ||
+        err.message ||
+        "Failed to create trip";
+      alert(msg);
     }
   };
 
@@ -76,9 +91,7 @@ export default function CreateTripPage() {
             </div>
 
             <div className="mb-3">
-              <CitySearchBox
-                onSelect={(city) => setForm((f) => ({ ...f, ...city }))}
-              />
+              <CitySearchBox onSelect={(city) => setForm((f) => ({ ...f, ...city }))} />
             </div>
 
             <div className="mb-3">
