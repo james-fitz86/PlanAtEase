@@ -14,6 +14,13 @@ class TripMemberSerializer(serializers.ModelSerializer):
         model = TripMember
         fields = ["id", "user_id", "user_email", "role", "added_at"]
         read_only_fields = ["id", "user_id", "user_email", "added_at"]
+    
+    def update(self, instance, validated_data):
+        role = validated_data.get("role", None)
+        if role is not None:
+            instance.role = role
+            instance.save(update_fields=["role"])
+        return instance
 
 
 class TripSerializer(serializers.ModelSerializer):
