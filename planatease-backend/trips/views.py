@@ -427,11 +427,20 @@ class GuestTripItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIVi
         return _with_guest_header(resp, self.gid)
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class GuestTripTransferView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     authentication_classes = [JWTAuthentication]
 
     def post(self, request):
+        gid = (request.META.get("HTTP_X_GUEST_ID") or request.session.get("guest_id") or "").strip()
+        if not gid:
+            return Response({"transferred": []}, status=status.HTTP_200_OK)
+
+        request.session["guest_id"] = gid
         summary = promote_guest_trips_to_user(request, request.user)
         count = int(summary.get("promoted", 0) or 0)
-        return Response({"transferred": [None] * count}, status=status.HTTP_200_OK)
+
+        resp = Response({"transferred": [None] * count}, status=status.HTTP_200_OK)
+        resp["X-Guest-Id"] = gid
+        return resp
