@@ -353,6 +353,8 @@ class GuestTripItemListCreateView(generics.ListCreateAPIView):
         self.gid = _request_or_issue_guest_id(request)
 
     def dispatch(self, request, *args, **kwargs):
+        self.gid = _request_or_issue_guest_id(request)
+
         self.guest_trip = GuestTrip.objects.filter(
             pk=kwargs.get("guest_trip_id"),
             guest_id=self.gid
@@ -397,14 +399,13 @@ class GuestTripItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIVi
     serializer_class = GuestTripItemSerializer
     lookup_url_kwarg = "item_id"
 
-    def initial(self, request, *args, **kwargs):
-        super().initial(request, *args, **kwargs)
-        self.gid = _request_or_issue_guest_id(request)
-
     def dispatch(self, request, *args, **kwargs):
+        gid = _request_or_issue_guest_id(request)
+        self.gid = gid
+
         self.guest_trip = GuestTrip.objects.filter(
             pk=kwargs.get("guest_trip_id"),
-            guest_id=self.gid
+            guest_id=gid
         ).first()
         if not self.guest_trip:
             raise NotFound("Guest trip not found.")
