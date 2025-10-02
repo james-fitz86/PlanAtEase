@@ -19,3 +19,7 @@ frontend/build/
 .vscode/
 
 login.json
+
+# Coverage reports
+.coverage
+htmlcov/
