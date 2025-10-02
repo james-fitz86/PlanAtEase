@@ -16,18 +16,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.http import HttpResponse
+from django.shortcuts import render
 
-def landing(_request):
-    return HttpResponse(
-        """<!doctype html>
-<title>PlanAtEase API</title>
-<main style="font-family:sans-serif;max-width:680px;margin:4rem auto;padding:1rem;text-align:center">
-  <h1>PlanAtEase API</h1>
-  <p>Frontend: <a href="https://planatease.netlify.app">planatease.netlify.app</a></p>
-</main>""",
-        content_type="text/html",
-    )
+def landing(request):
+    if "127.0.0.1" in request.get_host() or "localhost" in request.get_host():
+        admin_url = "http://127.0.0.1:8000/admin"
+    else:
+        admin_url = "https://planatease.onrender.com/admin"
+    return render(request, "index.html", {"admin_url": admin_url})
 
 urlpatterns = [
     path("", landing, name="landing"),
