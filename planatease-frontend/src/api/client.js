@@ -1,3 +1,5 @@
+import { getTokens } from "../auth/storage"; 
+
 const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL;
 const API_BASE = (RAW_API_BASE || "").replace(/\/+$/, "");
 
@@ -21,6 +23,11 @@ export async function guestFetch(url, opts = {}) {
     "Content-Type": "application/json",
     ...(opts.headers || {}),
   };
+
+  const tokens = getTokens?.();
+  if (tokens?.access && !headers.Authorization) {
+    headers.Authorization = `Bearer ${tokens.access}`;
+  }
 
   const gid = localStorage.getItem(GUEST_KEY);
   if (gid && !headers["X-Guest-Id"]) headers["X-Guest-Id"] = gid;
