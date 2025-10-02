@@ -238,23 +238,29 @@ class TripItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
 GUEST_TTL_DAYS = 14
 
-def _require_guest_id(request):
-    """
-    Ensure a guest_id exists in the session. Create one if missing.
-    Single-device/browser scope per your design.
-    """
+def _request_or_issue_guest_id(request):
+    hdr = (request.META.get("HTTP_X_GUEST_ID") or "").strip()
+    if hdr:
+        return hdr
+
     gid = request.session.get("guest_id")
-    if not gid:
-        if not request.session.session_key:
-            request.session.save()
-        gid = request.session.session_key
-        request.session["guest_id"] = gid
-        request.session.modified = True
+    if gid:
+        return gid
+    if not request.session.session_key:
+        request.session.save()
+    gid = request.session.session_key
+    request.session["guest_id"] = gid
+    request.session.modified = True
     return gid
 
 def _ensure_not_expired(obj):
     if obj.expires_at <= timezone.now():
         raise NotFound("Guest trip expired.")
+
+def _with_guest_header(response, gid: str):
+    if gid:
+        response["X-Guest-Id"] = gid
+    return response
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -269,20 +275,31 @@ class GuestTripListCreateView(generics.ListCreateAPIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "guest_write"
 
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        self.gid = _request_or_issue_guest_id(request)
+
     def get_queryset(self):
-        gid = _require_guest_id(self.request)
         return GuestTrip.objects.filter(
-            guest_id=gid,
+            guest_id=self.gid,
             expires_at__gt=timezone.now()
         ).order_by("-created_at")
 
     def perform_create(self, serializer):
-        gid = _require_guest_id(self.request)
         now = timezone.now()
         serializer.save(
-            guest_id=gid,
+            guest_id=self.gid,
             expires_at=now + timedelta(days=GUEST_TTL_DAYS),
         )
+
+    def list(self, request, *args, **kwargs):
+        resp = super().list(request, *args, **kwargs)
+        return _with_guest_header(resp, self.gid)
+
+    def create(self, request, *args, **kwargs):
+        resp = super().create(request, *args, **kwargs)
+        return _with_guest_header(resp, self.gid)
+
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -296,13 +313,28 @@ class GuestTripRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = GuestTrip.objects.all()
     lookup_url_kwarg = "guest_trip_id"
 
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        self.gid = _request_or_issue_guest_id(request)
+
     def get_object(self):
-        gid = _require_guest_id(self.request)
         obj = super().get_object()
-        if obj.guest_id != gid:
+        if obj.guest_id != self.gid:
             raise NotFound("Guest trip not found.")
         _ensure_not_expired(obj)
         return obj
+
+    def retrieve(self, request, *args, **kwargs):
+        resp = super().retrieve(request, *args, **kwargs)
+        return _with_guest_header(resp, self.gid)
+
+    def partial_update(self, request, *args, **kwargs):
+        resp = super().partial_update(request, *args, **kwargs)
+        return _with_guest_header(resp, self.gid)
+
+    def destroy(self, request, *args, **kwargs):
+        resp = super().destroy(request, *args, **kwargs)
+        return _with_guest_header(resp, self.gid)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -316,11 +348,14 @@ class GuestTripItemListCreateView(generics.ListCreateAPIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "guest_write"
 
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        self.gid = _request_or_issue_guest_id(request)
+
     def dispatch(self, request, *args, **kwargs):
-        gid = _require_guest_id(request)
         self.guest_trip = GuestTrip.objects.filter(
             pk=kwargs.get("guest_trip_id"),
-            guest_id=gid
+            guest_id=self.gid
         ).first()
         if not self.guest_trip:
             raise NotFound("Guest trip not found.")
@@ -340,6 +375,15 @@ class GuestTripItemListCreateView(generics.ListCreateAPIView):
         ctx["guest_trip"] = self.guest_trip
         return ctx
 
+    def list(self, request, *args, **kwargs):
+        resp = super().list(request, *args, **kwargs)
+        return _with_guest_header(resp, self.gid)
+
+    def create(self, request, *args, **kwargs):
+        resp = super().create(request, *args, **kwargs)
+        return _with_guest_header(resp, self.gid)
+
+
 
 @method_decorator(csrf_exempt, name="dispatch")
 class GuestTripItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
@@ -353,11 +397,14 @@ class GuestTripItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIVi
     serializer_class = GuestTripItemSerializer
     lookup_url_kwarg = "item_id"
 
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        self.gid = _request_or_issue_guest_id(request)
+
     def dispatch(self, request, *args, **kwargs):
-        gid = _require_guest_id(request)
         self.guest_trip = GuestTrip.objects.filter(
             pk=kwargs.get("guest_trip_id"),
-            guest_id=gid
+            guest_id=self.gid
         ).first()
         if not self.guest_trip:
             raise NotFound("Guest trip not found.")
@@ -367,11 +414,18 @@ class GuestTripItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIVi
     def get_queryset(self):
         return GuestTripItem.objects.filter(guest_trip=self.guest_trip)
 
-    def perform_update(self, serializer):
-        serializer.save()
+    def retrieve(self, request, *args, **kwargs):
+        resp = super().retrieve(request, *args, **kwargs)
+        return _with_guest_header(resp, self.gid)
 
-    def perform_destroy(self, instance):
-        instance.delete()
+    def partial_update(self, request, *args, **kwargs):
+        resp = super().partial_update(request, *args, **kwargs)
+        return _with_guest_header(resp, self.gid)
+
+    def destroy(self, request, *args, **kwargs):
+        resp = super().destroy(request, *args, **kwargs)
+        return _with_guest_header(resp, self.gid)
+
 
 class GuestTripTransferView(APIView):
     permission_classes = [permissions.IsAuthenticated]
