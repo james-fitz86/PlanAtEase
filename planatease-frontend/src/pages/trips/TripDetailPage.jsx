@@ -7,6 +7,7 @@ import CreateTripItem from "../../components/trips/CreateTripItem";
 import PageContainer from "../../components/base/PageContainer";
 import { countryNameFromCode } from "../../utils/geo";
 import TripMap from "../../components/trips/TripMap";
+import backdrop from "../../assets/images/backdrop.png";
 
 function formatDate(dateStr) {
   if (!dateStr) return "-";
@@ -21,9 +22,7 @@ function tripTitle(trip) {
   const city = trip?.city_name?.trim();
   const formatted = trip?.formatted_address?.trim();
 
-  if (name && city && name.toLowerCase() !== city.toLowerCase()) {
-    return name;
-  }
+  if (name && city && name.toLowerCase() !== city.toLowerCase()) return name;
   if (city) return `Trip to ${city}`;
   if (formatted) return formatted;
   return "Trip";
@@ -39,21 +38,36 @@ export default function TripDetailPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [deleting, setDeleting] = useState(false);
+
   const [itemsVersion, setItemsVersion] = useState(0);
   const [items, setItems] = useState([]);
   const [dayFilter, setDayFilter] = useState(null);
 
-  const itemsForMap = useMemo(
-    () => (dayFilter ? items.filter(it => it.date === dayFilter) : items),
-    [items, dayFilter]
-  );
+  const itemsForMap = useMemo(() => {
+    const base = dayFilter ? items.filter((it) => it.date === dayFilter) : items;
+    return base.map((it) => {
+      const lat =
+        it.lat ??
+        it.place?.geometry?.location?.lat ??
+        it.place?.lat ??
+        it.raw_place?.location?.lat ??
+        null;
+      const lng =
+        it.lng ??
+        it.place?.geometry?.location?.lng ??
+        it.place?.lng ??
+        it.raw_place?.location?.lng ??
+        null;
+      return { ...it, lat, lng };
+    });
+  }, [items, dayFilter]);
+
 
   async function refreshMembers() {
     try {
       const m = await listTripMembers(tripKey);
       setMembers(m);
     } catch (e) {
-      console.error("Failed to refresh members", e);
     }
   }
 
@@ -64,22 +78,26 @@ export default function TripDetailPage() {
   useEffect(() => {
     if (!tripKey) return;
     let alive = true;
+
     (async () => {
       try {
         const data = await listTripItems(tripKey);
         if (!alive) return;
-        setItems(Array.isArray(data) ? data : []);
-        console.log("Trip items loaded:", data?.length ?? 0, data);
+        const arr = Array.isArray(data?.results) ? data.results : Array.isArray(data) ? data : [];
+        setItems(arr);
       } catch (e) {
-        console.error("Failed to load trip items", e);
       }
     })();
-    return () => { alive = false; };
+
+    return () => {
+      alive = false;
+    };
   }, [tripKey, itemsVersion]);
 
   useEffect(() => {
     if (!tripKey) return;
     let alive = true;
+
     (async () => {
       try {
         const [t, m] = await Promise.all([getTrip(tripKey), listTripMembers(tripKey)]);
@@ -92,6 +110,7 @@ export default function TripDetailPage() {
         if (alive) setLoading(false);
       }
     })();
+
     return () => {
       alive = false;
     };
@@ -113,62 +132,70 @@ export default function TripDetailPage() {
   }
 
   if (loading) {
-    return <div className="p-6">Loading…</div>;
+    return (
+      <PageContainer className="my-3">
+        <div className="d-flex align-items-center gap-2">
+          <div className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+          <span className="text-muted">Loading…</span>
+        </div>
+      </PageContainer>
+    );
   }
   if (err) {
-    return <div className="p-6 text-red-600">{err}</div>;
+    return (
+      <PageContainer className="my-3">
+        <div className="alert alert-danger mb-0">{err}</div>
+      </PageContainer>
+    );
   }
   if (!trip) {
-    return <div className="p-6">Trip not found.</div>;
+    return (
+      <PageContainer className="my-3">
+        <div className="alert alert-warning mb-0">Trip not found.</div>
+      </PageContainer>
+    );
   }
 
   const tripUrlId = trip.slug || trip.uid || trip.id;
 
   return (
     <PageContainer className="my-3">
-      <header className="mb-4">
-          <div className="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3">
-            <div className="text-center flex-grow-1">
-              <h1 className="h4 mb-1">{tripTitle(trip)}</h1>
-              <p className="text-muted small mb-0">
-                  {formatDate(trip.start_date)} → {formatDate(trip.end_date)}
-              </p>
-              <p>{trip.city_name || "-"}, {countryNameFromCode(trip?.country_code)}</p>
-            </div>
-            
-            <div className="d-flex flex-column flex-sm-row gap-2">
-              <Link to="/dashboard" className="btn btn-outline-secondary btn-sm">
-                Back to Dashboard
-              </Link>
-                {trip.is_owner && (
-                  <>
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
-                      onClick={() => navigate(`/trips/${tripUrlId}/edit`)}
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      type="button"
-                      className="btn btn-outline-danger btn-sm"
-                      onClick={handleDelete}
-                      disabled={deleting}
-                      title="Delete trip"
-                    >
-                      {deleting ? "Deleting…" : "Delete"}
-                    </button>
-                  </>
-                )}
-            </div>
+      <header
+        className="tripdetail-header mb-4"
+        style={{ backgroundImage: `url(${backdrop})` }}
+      >
+        <div className="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3">
+          <div className="text-center flex-grow-1">
+            <h1 className="h4 mb-1">{tripTitle(trip)}</h1>
+            <p className="small mb-0">
+              {formatDate(trip.start_date)} → {formatDate(trip.end_date)}
+            </p>
+            <p className="mb-0">
+              {trip.city_name || "-"}, {countryNameFromCode(trip?.country_code)}
+            </p>
           </div>
+
+          <div className="d-flex flex-column flex-sm-row gap-2">
+            <Link to="/dashboard" className="btn btn-secondary btn-sm">Back to Dashboard</Link>
+            {trip.is_owner && (
+              <>
+                <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate(`/trips/${tripUrlId}/edit`)}>
+                  Edit
+                </button>
+                <button type="button" className="btn btn-danger btn-sm" onClick={handleDelete} disabled={deleting} title="Delete trip">
+                  {deleting ? "Deleting…" : "Delete"}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       </header>
+
+
 
       <div className="row g-2 g-md-4">
         <div className="col-12 col-md-7 col-lg-7">
           <div className="row g-4">
-
             <div className="col-12">
               <MemberCard
                 tripId={tripKey}
@@ -186,21 +213,35 @@ export default function TripDetailPage() {
                 tripStart={trip.start_date}
                 tripEnd={trip.end_date}
                 onCreated={refreshItems}
-                defaultDate={dayFilter} 
+                defaultDate={dayFilter}
               />
             </div>
-            
-            <Itinerary
-              start={trip.start_date}
-              end={trip.end_date}
-              tripId={tripKey}
-              tripLat={trip.lat}
-              tripLng={trip.lng}
-              refreshTick={itemsVersion}
-              onItemsChanged={refreshItems}
-              onDayFilterChange={setDayFilter}
-            />
 
+            <div className="col-12">
+              <Itinerary
+                start={trip.start_date}
+                end={trip.end_date}
+                tripId={tripKey}
+                tripLat={trip.lat}
+                tripLng={trip.lng}
+                refreshTick={itemsVersion}
+                onItemsChanged={refreshItems}
+                onDayFilterChange={setDayFilter}
+                onPatchedItem={(u) =>
+                  setItems((prev) => {
+                    let found = false;
+                    const next = prev.map((it) => {
+                      if (it.id === u.id) {
+                        found = true;
+                        return { ...it, ...u };
+                      }
+                      return it;
+                    });
+                    return found ? next : [...next, u];
+                  })
+                }
+              />
+            </div>
           </div>
         </div>
 
@@ -221,4 +262,3 @@ export default function TripDetailPage() {
     </PageContainer>
   );
 }
-

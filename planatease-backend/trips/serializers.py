@@ -110,6 +110,11 @@ class TripItemSerializer(serializers.ModelSerializer):
     created_by_email = serializers.EmailField(source="created_by.email", read_only=True)
     item_type_label = serializers.CharField(source="get_item_type_display", read_only=True)
 
+    lat = serializers.SerializerMethodField()
+    lng = serializers.SerializerMethodField()
+    place_name = serializers.SerializerMethodField()
+    formatted_address = serializers.SerializerMethodField()
+
     class Meta:
         model = TripItem
         read_only_fields = [
@@ -126,32 +131,27 @@ class TripItemSerializer(serializers.ModelSerializer):
             "created_at", "updated_at",
         ]
 
-    def validate(self, attrs):
-        trip: Trip = self.context.get("trip")
-        request = self.context.get("request")
+    def _place_blob(self, obj):
+        return getattr(obj, "raw_place", {}) or {}
 
-        if trip and not attrs.get("trip"):
-            attrs["trip"] = trip
+    def get_lat(self, obj):
+        rp = self._place_blob(obj)
+        lat = (rp.get("geometry", {}).get("location", {}) or rp.get("location", {})).get("lat")
+        return lat if lat is not None else getattr(obj, "lat", None)
 
-        if trip and "date" in attrs:
-            date = attrs["date"]
-            if date < trip.start_date or date > trip.end_date:
-                raise serializers.ValidationError({
-                    "date": "Item date must be within trip start/end dates."
-                })
+    def get_lng(self, obj):
+        rp = self._place_blob(obj)
+        lng = (rp.get("geometry", {}).get("location", {}) or rp.get("location", {})).get("lng")
+        return lng if lng is not None else getattr(obj, "lng", None)
 
-        if attrs.get("end_time") and attrs["end_time"] <= attrs["start_time"]:
-            raise serializers.ValidationError({
-                "end_time": "End time must be after start time."
-            })
+    def get_place_name(self, obj):
+        rp = self._place_blob(obj)
+        return rp.get("name") or getattr(obj, "place_name", None)
 
-        return attrs
+    def get_formatted_address(self, obj):
+        rp = self._place_blob(obj)
+        return rp.get("formatted_address") or getattr(obj, "formatted_address", None)
 
-    def create(self, validated_data):
-        request = self.context.get("request")
-        if request and request.user.is_authenticated:
-            validated_data["created_by"] = request.user
-        return super().create(validated_data)
 
 class TripItemCreateSerializer(serializers.ModelSerializer):
    
@@ -204,7 +204,39 @@ class TripItemCreateSerializer(serializers.ModelSerializer):
 
         return TripItem.objects.create(**validated_data)
     
+class TripItemUpdateSerializer(serializers.ModelSerializer):
+    place = serializers.JSONField(write_only=True, required=False)
 
+    class Meta:
+        model = TripItem
+        fields = [
+            "item_type", "date", "start_time", "end_time",
+            "title", "description",
+            "place",
+        ]
+
+    def update(self, instance, validated_data):
+        place = validated_data.pop("place", None)
+
+        for f in ["item_type", "date", "start_time", "end_time", "title", "description"]:
+            if f in validated_data:
+                setattr(instance, f, validated_data[f])
+
+        if place:
+            instance.place_id = place.get("place_id") or place.get("id", "") or instance.place_id
+            instance.place_name = place.get("name", "") or instance.place_name
+            instance.formatted_address = place.get("formatted_address", "") or instance.formatted_address
+
+            geo = (place.get("geometry") or {}).get("location") or {}
+            if "lat" in geo:
+                instance.lat = geo["lat"]
+            if "lng" in geo:
+                instance.lng = geo["lng"]
+
+            instance.raw_place = place
+
+        instance.save()
+        return instance
 
 class GuestTripSerializer(serializers.ModelSerializer):
     class Meta:
@@ -239,6 +271,12 @@ class GuestTripItemSerializer(serializers.ModelSerializer):
     created_by_email = serializers.EmailField(source="created_by.email", read_only=True)
     item_type_label = serializers.CharField(source="get_item_type_display", read_only=True)
 
+    # Prefer data from raw_place -> fall back to columns
+    lat = serializers.SerializerMethodField()
+    lng = serializers.SerializerMethodField()
+    place_name = serializers.SerializerMethodField()
+    formatted_address = serializers.SerializerMethodField()
+
     class Meta:
         model = GuestTripItem
         read_only_fields = [
@@ -256,30 +294,27 @@ class GuestTripItemSerializer(serializers.ModelSerializer):
             "created_at", "updated_at",
         ]
 
-    def validate(self, attrs):
-        guest_trip: GuestTrip = self.context.get("guest_trip")
-        if guest_trip and not attrs.get("guest_trip"):
-            attrs["guest_trip"] = guest_trip
+    def _place_blob(self, obj):
+        return getattr(obj, "raw_place", {}) or {}
 
-        if guest_trip and "date" in attrs:
-            date = attrs["date"]
-            if date < guest_trip.start_date or date > guest_trip.end_date:
-                raise serializers.ValidationError({
-                    "date": "Item date must be within trip start/end dates."
-                })
+    def get_lat(self, obj):
+        rp = self._place_blob(obj)
+        lat = (rp.get("geometry", {}).get("location", {}) or rp.get("location", {})).get("lat")
+        return lat if lat is not None else getattr(obj, "lat", None)
 
-        if attrs.get("end_time") and attrs["end_time"] <= attrs["start_time"]:
-            raise serializers.ValidationError({
-                "end_time": "End time must be after start time."
-            })
+    def get_lng(self, obj):
+        rp = self._place_blob(obj)
+        lng = (rp.get("geometry", {}).get("location", {}) or rp.get("location", {})).get("lng")
+        return lng if lng is not None else getattr(obj, "lng", None)
 
-        return attrs
+    def get_place_name(self, obj):
+        rp = self._place_blob(obj)
+        return rp.get("name") or getattr(obj, "place_name", None)
 
-    def create(self, validated_data):
-        request = self.context.get("request")
-        if request and request.user.is_authenticated:
-            validated_data["created_by"] = request.user
-        return super().create(validated_data)
+    def get_formatted_address(self, obj):
+        rp = self._place_blob(obj)
+        return rp.get("formatted_address") or getattr(obj, "formatted_address", None)
+
 
 
 class GuestTripItemCreateSerializer(serializers.ModelSerializer):
@@ -335,3 +370,37 @@ class GuestTripItemCreateSerializer(serializers.ModelSerializer):
         })
 
         return GuestTripItem.objects.create(**validated_data)
+
+class GuestTripItemUpdateSerializer(serializers.ModelSerializer):
+    place = serializers.JSONField(write_only=True, required=False)
+
+    class Meta:
+        model = GuestTripItem
+        fields = [
+            "item_type", "date", "start_time", "end_time",
+            "title", "description",
+            "place",
+        ]
+
+    def update(self, instance, validated_data):
+        place = validated_data.pop("place", None)
+
+        for f in ["item_type", "date", "start_time", "end_time", "title", "description"]:
+            if f in validated_data:
+                setattr(instance, f, validated_data[f])
+
+        if place:
+            instance.place_id = place.get("place_id") or place.get("id", "") or instance.place_id
+            instance.place_name = place.get("name", "") or instance.place_name
+            instance.formatted_address = place.get("formatted_address", "") or instance.formatted_address
+
+            geo = (place.get("geometry") or {}).get("location") or {}
+            if "lat" in geo:
+                instance.lat = geo["lat"]
+            if "lng" in geo:
+                instance.lng = geo["lng"]
+
+            instance.raw_place = place
+
+        instance.save()
+        return instance

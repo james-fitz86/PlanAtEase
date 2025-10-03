@@ -134,7 +134,7 @@ export default function MembersCard({
               data-bs-toggle="modal"
               data-bs-target="#addMemberModal"
             >
-              Send Invite
+              Add Member
             </button>
           )}
         </div>

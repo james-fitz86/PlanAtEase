@@ -39,20 +39,21 @@ export default function Header() {
 
   return (
     <header className="site-header">
-      <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
+      <nav className="navbar navbar-expand-lg navbar-nebula fixed-top">
         <div className="container">
           <Link className="navbar-brand d-flex align-items-center" to="/">
             <img
               src={LogoImage}
               alt="PlanAtEase Logo"
-              width="50"
-              height="50"
-              className="d-inline-block align-text-top me-2"
+              width="42"
+              height="42"
+              className="brand-logo me-2"
             />
-            PlanAtEase
+            <span className="brand-text">PlanAtEase</span>
           </Link>
+
           <button
-            className="navbar-toggler"
+            className="navbar-toggler nebula-toggler"
             type="button"
             data-bs-toggle="collapse"
             data-bs-target="#navbarNav"
@@ -60,33 +61,51 @@ export default function Header() {
             aria-expanded="false"
             aria-label="Toggle navigation"
           >
-            <span className="navbar-toggler-icon"></span>
+            <span className="nebula-bar"></span>
+            <span className="nebula-bar"></span>
+            <span className="nebula-bar"></span>
           </button>
+
           <div className="collapse navbar-collapse" id="navbarNav">
-            <div className="navbar-nav ms-auto">
+            <ul className="navbar-nav ms-auto align-items-lg-center gap-lg-3">
+              {/* About link as informational */}
+              <li className="nav-item">
+                <Link className="nav-link" to="/about">
+                  About
+                </Link>
+              </li>
+
               {loggedIn ? (
                 <>
-                <Link className="nav-item nav-link" to="/dashboard">
-                  Dashboard
-                </Link>
-                <button
-                  className="nav-item nav-link"
-                  onClick={logout}
-                >
-                  Log out
-                </button>
-              </>
-            ) : (
+                  <li className="nav-item">
+                    <Link className="nav-link nebula-pill" to="/dashboard">
+                      Dashboard
+                    </Link>
+                  </li>
+                  <li className="nav-item">
+                    <button
+                      className="btn nebula-pill nebula-outline"
+                      onClick={logout}
+                    >
+                      Log out
+                    </button>
+                  </li>
+                </>
+              ) : (
                 <>
-                  <Link className="nav-item nav-link" to="/login">
-                    Login
-                  </Link>
-                  <Link className="nav-item nav-link" to="/register">
-                    Register
-                  </Link>
+                  <li className="nav-item">
+                    <Link className="nav-link nebula-pill" to="/login">
+                      Login
+                    </Link>
+                  </li>
+                  <li className="nav-item">
+                    <Link className="btn nebula-pill nebula-solid" to="/register">
+                      Register
+                    </Link>
+                  </li>
                 </>
               )}
-            </div>
+            </ul>
           </div>
         </div>
       </nav>

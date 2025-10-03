@@ -12,6 +12,7 @@ import {
   guestUpdateTripItem,
   guestDeleteTripItem,
 } from "../../api/trips_guest";
+import backdrop from "../../assets/images/backdrop.png";
 
 function formatDate(dateStr) {
   if (!dateStr) return "-";
@@ -53,10 +54,37 @@ export default function GuestTripDetailPage() {
   const [dayFilter, setDayFilter] = useState(null);
   const [bannerClosed, setBannerClosed] = useState(false);
 
-  const itemsForMap = useMemo(
-    () => (dayFilter ? items.filter((it) => it.date === dayFilter) : items),
-    [items, dayFilter]
-  );
+  const itemsForMap = useMemo(() => {
+    const base = dayFilter ? items.filter((it) => it.date === dayFilter) : items;
+    return base.map((it) => {
+      const lat =
+        it.lat ??
+        it.place?.geometry?.location?.lat ??
+        it.place?.lat ??
+        it.raw_place?.geometry?.location?.lat ??
+        it.raw_place?.location?.lat ??
+        null;
+      const lng =
+        it.lng ??
+        it.place?.geometry?.location?.lng ??
+        it.place?.lng ??
+        it.raw_place?.geometry?.location?.lng ??
+        it.raw_place?.location?.lng ??
+        null;
+      return { ...it, lat, lng };
+    });
+  }, [items, dayFilter]);
+
+
+  const handlePatchedItem = (u) => {
+    setItems((prev) => {
+      const idx = prev.findIndex((it) => it.id === u.id);
+      if (idx === -1) return [...prev, u];
+      const next = prev.slice();
+      next[idx] = { ...prev[idx], ...u };
+      return next;
+    });
+  };
 
   function refreshItems() {
     setItemsVersion((v) => v + 1);
@@ -93,7 +121,6 @@ export default function GuestTripDetailPage() {
         const arr = Array.isArray(data?.results) ? data.results : data || [];
         setItems(arr);
       } catch (e) {
-        console.error("Failed to load guest items", e);
       }
     })();
     return () => {
@@ -144,26 +171,29 @@ export default function GuestTripDetailPage() {
         </div>
       )}
 
-      <header className="mb-4">
+      <header
+        className="guesstrip-header mb-4"
+        style={{ backgroundImage: `url(${backdrop})` }}
+      >
         <div className="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3">
-            <div className="text-center flex-grow-1">
-                <h1 className="h4 mb-1">{tripTitle(trip)}</h1>
-                <p className="text-muted small mb-0">
-                {formatDate(trip.start_date)} → {formatDate(trip.end_date)}
-                </p>
-                <p>
-                {trip.city_name || "-"}, {countryNameFromCode(trip?.country_code)}
-                </p>
-            </div>
+          <div className="text-center flex-grow-1">
+            <h1 className="h4 mb-1">{tripTitle(trip)}</h1>
+            <p className="small mb-0">
+              {formatDate(trip.start_date)} → {formatDate(trip.end_date)}
+            </p>
+            <p>
+              {trip.city_name || "-"}, {countryNameFromCode(trip?.country_code)}
+            </p>
+          </div>
 
-            <div className="d-flex flex-column flex-sm-row gap-2">
-                <Link to="/" className="btn btn-outline-secondary btn-sm">
-                    Back to Home
-                </Link>
-                <Link to={`/guest/trips/${gid}/edit`} className="btn btn-primary btn-sm">
-                    Edit
-                </Link>
-            </div>
+          <div className="d-flex flex-column flex-sm-row gap-2">
+            <Link to="/" className="btn btn-secondary btn-sm">
+              Back to Home
+            </Link>
+            <Link to={`/guest/trips/${gid}/edit`} className="btn btn-primary btn-sm">
+              Edit
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -193,22 +223,25 @@ export default function GuestTripDetailPage() {
               />
             </div>
 
-            <Itinerary
-              start={trip.start_date}
-              end={trip.end_date}
-              tripId={null}
-              parentId={gid}
-              tripLat={trip.lat}
-              tripLng={trip.lng}
-              refreshTick={itemsVersion}
-              onItemsChanged={refreshItems}
-              onDayFilterChange={setDayFilter}
-              listFn={guestListTripItems}
-              deleteFn={guestDeleteTripItem}
-              updateFn={guestUpdateTripItem}
-              allowDayView={false}
-              allowEdit={true}
-            />
+            <div className="col-12">
+              <Itinerary
+                start={trip.start_date}
+                end={trip.end_date}
+                tripId={null}
+                parentId={gid}
+                tripLat={trip.lat}
+                tripLng={trip.lng}
+                refreshTick={itemsVersion}
+                onItemsChanged={refreshItems} 
+                onDayFilterChange={setDayFilter}
+                listFn={guestListTripItems}
+                deleteFn={guestDeleteTripItem}
+                updateFn={guestUpdateTripItem}
+                allowDayView={false}
+                allowEdit={true}
+                onPatchedItem={handlePatchedItem}
+              />
+            </div>
           </div>
         </div>
 

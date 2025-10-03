@@ -13,7 +13,8 @@ from .models import Trip, TripMember, TripItem, GuestTrip, GuestTripItem
 from .serializers import (
     TripSerializer, TripMemberSerializer, TripMemberCreateSerializer,
     TripItemSerializer, TripItemCreateSerializer,
-    GuestTripSerializer, GuestTripItemSerializer, GuestTripItemCreateSerializer
+    GuestTripSerializer, GuestTripItemSerializer, GuestTripItemCreateSerializer,
+    TripItemUpdateSerializer, GuestTripItemUpdateSerializer,
 )
 from .permissions import IsTripOwnerOrMemberReadOnly
 from rest_framework.views import APIView
@@ -236,6 +237,16 @@ class TripItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
             raise PermissionDenied("You do not have permission to delete trip items.")
         instance.delete()
 
+    def get_serializer_class(self):
+        if self.request.method in ("PATCH", "PUT"):
+            return TripItemUpdateSerializer
+        return TripItemSerializer
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["trip"] = getattr(self, "trip", None)
+        return ctx
+
 GUEST_TTL_DAYS = 14
 
 def _request_or_issue_guest_id(request):
@@ -354,7 +365,6 @@ class GuestTripItemListCreateView(generics.ListCreateAPIView):
 
     def dispatch(self, request, *args, **kwargs):
         self.gid = _request_or_issue_guest_id(request)
-
         self.guest_trip = GuestTrip.objects.filter(
             pk=kwargs.get("guest_trip_id"),
             guest_id=self.gid
@@ -384,7 +394,6 @@ class GuestTripItemListCreateView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         resp = super().create(request, *args, **kwargs)
         return _with_guest_header(resp, self.gid)
-
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -426,6 +435,16 @@ class GuestTripItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIVi
     def destroy(self, request, *args, **kwargs):
         resp = super().destroy(request, *args, **kwargs)
         return _with_guest_header(resp, self.gid)
+
+    def get_serializer_class(self):
+        if self.request.method in ("PATCH", "PUT"):
+            return GuestTripItemUpdateSerializer
+        return GuestTripItemSerializer
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["guest_trip"] = getattr(self, "guest_trip", None)
+        return ctx
 
 
 @method_decorator(csrf_exempt, name="dispatch")

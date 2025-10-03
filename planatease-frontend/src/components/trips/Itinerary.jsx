@@ -265,6 +265,9 @@ function ItineraryCarousel({
   onEdit,
   editModalId,
   onDayFilterChange,
+  parentId,
+  deleteFn,
+  allowEdit = true,
 }) {
   const [idx, setIdx] = useLocalStorage(`${storageKey}:idx`, 0);
   if (!days.length) return <p className="text-muted mb-0">No days.</p>;
@@ -352,9 +355,9 @@ function ItineraryCarousel({
               onDeleted={(id) => onItemDeleted(key, id)}
               onEdit={onEdit}
               editModalId={editModalId}
-              deleteFn={() => {}}
-              parentId={tripId}
-              allowEdit={false}
+              deleteFn={deleteFn}
+              parentId={parentId ?? tripId}
+              allowEdit={allowEdit}
             />
           ))
         )}
@@ -382,6 +385,7 @@ export default function Itinerary({
   updateFn,
   allowDayView = true,
   allowEdit = true,
+  onPatchedItem = () => {},
 }) {
   if (!tripId && !parentId) return null;
 
@@ -435,23 +439,27 @@ export default function Itinerary({
 
   const handleItemUpdated = (updated) => {
     setItemsByDate((prev) => {
-      const next = new Map(prev);
-      const prevKey = selectedItem?.date;
-      const nextKey = updated.date;
+      const next = new Map();
 
-      if (prevKey) {
-        const arrPrev = next.get(prevKey) || [];
-        next.set(prevKey, arrPrev.filter((x) => x.id !== updated.id));
+      for (const [dateKey, arr] of prev.entries()) {
+        const cleaned = arr.filter((x) => x.id !== updated.id);
+        if (cleaned.length) next.set(dateKey, cleaned);
       }
 
-      const arrNext = (next.get(nextKey) || []).filter((x) => x.id !== updated.id);
-      arrNext.push(updated);
-      arrNext.sort(compareItems);
-      next.set(nextKey, arrNext);
+      const targetKey = updated.date;
+      const targetArr = (next.get(targetKey) || []);
+      targetArr.push(updated);
+
+      targetArr.sort(compareItems);
+      next.set(targetKey, targetArr);
 
       return next;
     });
+
     setSelectedItem(null);
+
+    onPatchedItem(updated);
+    onItemsChanged?.();
   };
 
   useEffect(() => {
@@ -547,6 +555,9 @@ export default function Itinerary({
                   onEdit={setSelectedItem}
                   editModalId={EDIT_MODAL_ID}
                   onDayFilterChange={onDayFilterChange}
+                  parentId={effectiveParentId}
+                  deleteFn={effectiveDelete}
+                  allowEdit={allowEdit}
                 />
               )}
             </div>

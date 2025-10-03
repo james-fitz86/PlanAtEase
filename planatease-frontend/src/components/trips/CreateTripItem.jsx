@@ -27,9 +27,9 @@ export default function CreateTripItem({
     <div className="col-12">
       <div className="card h-100">
         <div className="card-body">
-          <h5 className="card-title mb-3">Add Trip Items</h5>
+          <h5 className="card-title mb-3">Add Travel Entries</h5>
           <div
-            className="d-flex flex-column flex-sm-row flex-sm-wrap justify-content-center align-items-center gap-2 py-1"
+            className="trip-buttons py-1"
             role="group"
             aria-label="Add item type"
           >
@@ -37,7 +37,7 @@ export default function CreateTripItem({
               <button
                 key={label}
                 type="button"
-                className={`btn btn-outline-secondary btn-sm ${btnClass}`}
+                className={`btn btn-outline-secondary btn-sm trip-button ${btnClass}`}
                 data-bs-toggle="modal"
                 data-bs-target={`#${CREATE_MODAL_ID}`}
                 onClick={() => setSelectedTypeLabel(label)}
@@ -62,4 +62,5 @@ export default function CreateTripItem({
       />
     </div>
   );
+
 }

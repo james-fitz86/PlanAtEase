@@ -70,7 +70,7 @@ export default function Profile() {
 
   return (
     <PageContainer className="my-3">
-      <div className="mx-auto w-100" style={{ maxWidth: 720 }}>
+      <div className="card shadow-sm p-4 mx-auto" style={{ maxWidth: 720 }}>
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h1 className="h3 mb-0">Profile</h1>
           {!editing ? (
@@ -96,20 +96,34 @@ export default function Profile() {
 
         {!editing && user && (
           <>
-            <div className="alert alert-light">
-              <p>Name: {user.full_name || <span className="text-muted">Not set</span>}</p>
-              <p>Email: {user.email}</p>
-              <p>
-                Home Location:{" "}
-                {user.home_location || <span className="text-muted">Not set</span>}
-              </p>
+            <div className="card mb-3">
+              <div className="card-body">
+                <h5 className="card-title mb-3">Profile Information</h5>
+                <ul className="list-group mb-3">
+                  <li className="list-group-item d-flex justify-content-between align-items-center">
+                    <strong>Name</strong>
+                    <span>{user.full_name || <span className="text-muted">Not set</span>}</span>
+                  </li>
+                  <li className="list-group-item d-flex justify-content-between align-items-center">
+                    <strong>Email</strong>
+                    <span>{user.email}</span>
+                  </li>
+                  <li className="list-group-item d-flex justify-content-between align-items-center">
+                    <strong>Home Location</strong>
+                    <span>{user.home_location || <span className="text-muted">Not set</span>}</span>
+                  </li>
+                </ul>
+              </div>
             </div>
-            <Link to="/password/change" className="btn btn-primary btn-sm me-2">
-              Change Password
-            </Link>
-            <Link to="/dashboard" className="btn btn-outline-secondary btn-sm">
-              Back to Dashboard
-            </Link>
+
+            <div className="d-flex flex-column flex-sm-row justify-content-around gap-2">
+              <Link to="/password/change" className="btn btn-primary btn-sm">
+                Change Password
+              </Link>
+              <Link to="/dashboard" className="btn btn-outline-secondary btn-sm">
+                Back to Dashboard
+              </Link>
+            </div>
           </>
         )}
 

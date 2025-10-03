@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import CitySearchBox from "../../components/trips/CitySearchBox";
 import DateRangeInput from "../../components/trips/DateRangeInput";
 import { getTrip, updateTrip } from "../../api/trips";
+import PageContainer from "../../components/base/PageContainer";
 
 export default function TripEditPage() {
   const { tripUid, id } = useParams();
@@ -77,11 +78,17 @@ export default function TripEditPage() {
     }
   }
 
-  if (loading || !form) return <div className="p-4">Loading…</div>;
+  if (loading || !form) {
+    return (
+      <PageContainer className="my-4">
+        <div className="text-center py-5">Loading…</div>
+      </PageContainer>
+    );
+  }
 
   return (
-    <div className="container my-4" style={{ maxWidth: 600 }}>
-      <div className="card shadow-sm">
+    <PageContainer className="my-4">
+      <div className="card shadow-sm mx-auto" style={{ maxWidth: 600 }}>
         <div className="card-header">
           <h1 className="h5 mb-0">Edit Trip</h1>
         </div>
@@ -138,7 +145,7 @@ export default function TripEditPage() {
           </form>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }
 

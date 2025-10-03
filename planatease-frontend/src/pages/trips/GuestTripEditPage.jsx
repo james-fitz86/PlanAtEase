@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import CitySearchBox from "../../components/trips/CitySearchBox";
 import DateRangeInput from "../../components/trips/DateRangeInput";
 import { guestGetTrip, guestUpdateTrip } from "../../api/trips_guest";
+import PageContainer from "../../components/base/PageContainer";
 
 export default function GuestTripEditPage() {
   const { guestTripId, id } = useParams();
@@ -88,18 +89,32 @@ export default function GuestTripEditPage() {
     }
   }
 
-  if (loading || !form) return <div className="p-4">Loading…</div>;
-  if (err) return <div className="p-4 text-danger">{err}</div>;
+  if (loading || !form) {
+    return (
+      <PageContainer className="my-4">
+        <div className="text-center py-5">Loading…</div>
+      </PageContainer>
+    );
+  }
+
+  if (err) {
+    return (
+      <PageContainer className="my-4">
+        <div className="text-danger">{err}</div>
+      </PageContainer>
+    );
+  }
 
   return (
-    <div className="container my-4" style={{ maxWidth: 600 }}>
-      <div className="card shadow-sm">
+    <PageContainer className="my-4">
+      <div className="card shadow-sm mx-auto" style={{ maxWidth: 600 }}>
         <div className="card-header d-flex justify-content-between align-items-center">
           <h1 className="h5 mb-0">Edit Guest Trip</h1>
           <Link to={`/guest/trips/${form.id}`} className="btn btn-outline-secondary btn-sm">
             Cancel
           </Link>
         </div>
+
         <div className="card-body">
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
@@ -153,6 +168,6 @@ export default function GuestTripEditPage() {
           </form>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

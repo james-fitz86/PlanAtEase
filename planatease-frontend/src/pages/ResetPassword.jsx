@@ -1,5 +1,6 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useState, useMemo } from "react";
+import PageContainer from "../components/base/PageContainer";
 
 const API = import.meta.env.VITE_API_BASE_URL;
 const STORAGE_KEY = "auth";
@@ -101,7 +102,7 @@ export default function ResetPassword() {
 
   if (status === "done") {
     return (
-      <section className="container my-5">
+      <PageContainer className="my-5">
         <div className="card shadow-sm p-4 mx-auto text-center" style={{ maxWidth: 420 }}>
           <h1 className="h4 mb-3">
             {isResetFlow ? "Password updated" : "Password changed"}
@@ -118,12 +119,12 @@ export default function ResetPassword() {
             {isResetFlow ? "Go to login" : "Back to profile"}
           </button>
         </div>
-      </section>
+      </PageContainer>
     );
   }
 
   return (
-    <section className="container my-5">
+    <PageContainer className="my-5">
       <div className="card shadow-sm p-4 mx-auto" style={{ maxWidth: 420 }}>
         <h1 className="h4 mb-3">
           {isResetFlow ? "Choose a new password" : "Change your password"}
@@ -197,6 +198,6 @@ export default function ResetPassword() {
           </div>
         </form>
       </div>
-    </section>
+    </PageContainer>
   );
 }

@@ -5,6 +5,7 @@ import DateRangeInput from "../../components/trips/DateRangeInput";
 import { createTrip } from "../../api/trips";
 import { guestCreateTrip } from "../../api/trips_guest";
 import { getTokens } from "../../auth/storage";
+import PageContainer from "../../components/base/PageContainer";
 
 export default function CreateTripPage() {
   const navigate = useNavigate();
@@ -31,6 +32,16 @@ export default function CreateTripPage() {
       form.source === "google"
     );
   }, [form]);
+
+  const handleCancel = () => {
+    const tokens = getTokens();
+    const isAuthed = !!tokens?.access;
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate(isAuthed ? "/dashboard" : "/");
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -72,11 +83,19 @@ export default function CreateTripPage() {
   };
 
   return (
-    <div className="container my-4" style={{ maxWidth: "600px" }}>
-      <div className="card shadow-sm">
-        <div className="card-header">
+    <PageContainer className="my-4">
+      <div className="card shadow-sm mx-auto" style={{ maxWidth: 600 }}>
+        <div className="card-header d-flex justify-content-between align-items-center">
           <h1 className="h5 mb-0">Create Trip</h1>
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm"
+            onClick={handleCancel}
+          >
+            Cancel
+          </button>
         </div>
+
         <div className="card-body">
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
@@ -84,14 +103,18 @@ export default function CreateTripPage() {
               <input
                 type="text"
                 value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
                 className="form-control"
                 placeholder="e.g. Milan City Break"
               />
             </div>
 
             <div className="mb-3">
-              <CitySearchBox onSelect={(city) => setForm((f) => ({ ...f, ...city }))} />
+              <CitySearchBox
+                onSelect={(city) => setForm((f) => ({ ...f, ...city }))}
+              />
             </div>
 
             <div className="mb-3">
@@ -99,21 +122,37 @@ export default function CreateTripPage() {
                 startDate={form.start_date}
                 endDate={form.end_date}
                 onChange={({ startDate, endDate }) =>
-                  setForm((f) => ({ ...f, start_date: startDate, end_date: endDate }))
+                  setForm((f) => ({
+                    ...f,
+                    start_date: startDate,
+                    end_date: endDate,
+                  }))
                 }
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={!canSubmit}
-              className={`btn ${canSubmit ? "btn-primary" : "btn-secondary disabled"}`}
-            >
-              Create
-            </button>
+            <div className="d-flex flex-column flex-sm-row justify-content-between gap-2 mt-3">
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={handleCancel}
+              >
+                Back
+              </button>
+
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className={`btn ${
+                  canSubmit ? "btn-primary" : "btn-secondary disabled"
+                }`}
+              >
+                Create
+              </button>
+            </div>
           </form>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

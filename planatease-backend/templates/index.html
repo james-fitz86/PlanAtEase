@@ -41,7 +41,9 @@
         <strong>Frontend:</strong> A React application deployed at 
         <a href="https://planatease.site/">planatease.site</a>.  
         Users interact with trip planning, authentication, and dashboards here.  
-        The <em>external API integration</em> (e.g. Google Places) is handled entirely within the frontend, so external requests never touch the backend.
+        The <em>external API integration</em> (e.g. Google Places) is initiated by the frontend, but the retrieved data flows through the backend via serializers 
+        and is persisted in the database. This ensures consistent data handling, validation, and secure storage while still allowing the frontend to interact 
+        seamlessly with external services.
       </p>
       <p>
         <strong>Backend:</strong> A Django REST Framework API hosted on Render. It manages authentication, user data, trip creation, and all database operations.

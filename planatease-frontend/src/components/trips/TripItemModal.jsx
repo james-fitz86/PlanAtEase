@@ -183,6 +183,24 @@ export default function TripItemModal({
     };
   }
 
+  // A) Invalidate place when the user types so we never submit stale coords
+  function handlePlaceTextChange(text) {
+    setPlaceQueryText(text);
+    const sameAsSelected =
+      text === form.place_name || text === form.formatted_address;
+    if (!sameAsSelected) {
+      setForm((f) => ({
+        ...f,
+        place_id: "",
+        place_name: "",
+        formatted_address: "",
+        lat: null,
+        lng: null,
+        raw_place: null,
+      }));
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!canSubmit) return;
@@ -203,7 +221,24 @@ export default function TripItemModal({
 
       if (mode === "edit" && item?.id) {
         const updated = await effectiveUpdate(effectiveParentId, item.id, payload);
-        onSaved?.(updated);
+
+        // B) Hydrate with submitted coords so the UI/map updates immediately
+        const hydrated = {
+          ...updated,
+          place_id: payload.place.place_id,
+          place_name: payload.place.name,
+          formatted_address: payload.place.formatted_address,
+          lat: payload.place.geometry.location.lat,
+          lng: payload.place.geometry.location.lng,
+          raw_place: payload.place.raw_place ?? updated.raw_place ?? null,
+          date: payload.date ?? updated.date,
+          start_time: payload.start_time ?? updated.start_time,
+          end_time: payload.end_time ?? updated.end_time,
+          title: payload.title ?? updated.title,
+          description: payload.description ?? updated.description,
+        };
+
+        onSaved?.(hydrated);
       } else {
         const created = await effectiveCreate(effectiveParentId, payload);
         onCreated?.(created);
@@ -300,7 +335,7 @@ export default function TripItemModal({
               placeholder={fieldCopy.placeholder}
               includedPrimaryTypes={fieldCopy.primaryTypes}
               value={placeQueryText}
-              onChangeText={setPlaceQueryText}
+              onChangeText={handlePlaceTextChange}
               onClear={() => {
                 setPlaceQueryText("");
                 setForm((f) => ({

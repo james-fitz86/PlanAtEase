@@ -18,31 +18,14 @@ import ActivateAccount from "./pages/ActivateAccount.jsx";
 import CheckEmail from "./pages/CheckEmail.jsx";
 import GuestTripDetailPage from "./pages/trips/GuestTripDetailPage.jsx";
 import GuestTripEditPage from "./pages/trips/GuestTripEditPage.jsx";
+import Home from "./pages/Home.jsx";
+import About from "./pages/About.jsx";
 import "./App.css";
 
 import { decodeJwt, secondsUntilExpiry } from "./auth/jwt";
 import { getTokens } from "./auth/storage";
 import { startAuthScheduler } from "./auth/scheduler.js";
 
-function Home() {
-  return (
-    <div>
-      <img
-        src={logo}
-        alt="PlanAtEase Logo"
-        style={{ width: "100%", maxWidth:"600px", marginBottom: "20px" }}
-      />
-      <h1>Welcome to PlanAtEase</h1>
-      <h2>Your Smart Travel Itinerary Builder</h2>
-
-      <p style={{ marginTop: "16px" }}>
-        <Link to="/trips/create" className="btn btn-primary">
-          Get started — Create a Trip
-        </Link>
-      </p>
-    </div>
-  );
-}
 
 export default function App() {
 
@@ -68,6 +51,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/about" element={<About />} />
           <Route path="/register" element={< Register />} />
           <Route path="/activate/:uid/:token" element={<ActivateAccount />} />
           <Route path="/check-email" element={<CheckEmail />} />
