@@ -36,22 +36,139 @@ function isPastTrip(endDateStr) {
 }
 
 function detectRole(t) {
-  if (t?.is_owner) return "owner";
-  const tripRole = (
-    t?.my_role ||
-    t?.role ||
-    t?.member_role ||
-    t?.membership?.role ||
-    ""
-  ).toString().toLowerCase();
-  const canEdit =
-    t?.is_editor === true ||
-    t?.can_edit === true ||
-    t?.can_edit_items === true ||
-    (Array.isArray(t?.permissions) && t.permissions.some((p) => /edit/i.test(String(p)))) ||
-    (tripRole && tripRole !== "viewer");
-  if (canEdit) return "editor";
-  return "viewer";
+  const norm = (v) => String(v ?? "").toLowerCase().trim();
+  const truthy = (v) => {
+    if (typeof v === "string") return ["true", "1", "yes", "y", "t", "on"].includes(v.toLowerCase().trim());
+    if (typeof v === "number") return v !== 0;
+    return !!v;
+  };
+  const take = (...vals) => vals.find((v) => v != null && v !== "");
+
+  const roleStr = norm(
+    take(
+      t?.my_role,
+      t?.role,
+      t?.member_role,
+      t?.membership?.role,
+      t?.membership?.my_role,
+      t?.membership?.member_role,
+      t?.role_name,
+      t?.membership?.role_name,
+      t?.access_level,
+      t?.membership?.access_level
+    )
+  );
+
+  const collectPermEntries = (val) => {
+    if (!val) return [];
+    if (Array.isArray(val)) {
+      return val.flatMap((p) => {
+        if (typeof p === "string") return [norm(p)];
+        if (typeof p === "object") {
+          const name = p.name || p.codename || p.key || p.id || "";
+          return [norm(name)];
+        }
+        return [norm(String(p))];
+      });
+    }
+    if (typeof val === "object") {
+      return Object.entries(val)
+        .filter(([, v]) => truthy(v))
+        .map(([k]) => norm(k));
+    }
+    return [norm(val)];
+  };
+
+  const perms = [
+    ...collectPermEntries(t?.permissions),
+    ...collectPermEntries(t?.membership?.permissions),
+    ...collectPermEntries(t?.my_permissions),
+    ...collectPermEntries(t?.member_permissions),
+    ...collectPermEntries(t?.scopes),
+    ...collectPermEntries(t?.membership?.scopes),
+    ...collectPermEntries(t?.caps),
+    ...collectPermEntries(t?.membership?.caps),
+  ];
+
+  const deepImplies = (obj, pattern) => {
+    try {
+      const seen = new Set();
+      const stack = [obj];
+      while (stack.length) {
+        const cur = stack.pop();
+        if (!cur || typeof cur !== "object") continue;
+        if (seen.has(cur)) continue;
+        seen.add(cur);
+        for (const [k, v] of Object.entries(cur)) {
+          const key = norm(k);
+          if (pattern.test(key) && truthy(v)) return true;
+          if (typeof v === "object") stack.push(v);
+          if (Array.isArray(v)) for (const it of v) if (typeof it === "object") stack.push(it);
+          if (Array.isArray(v)) {
+            for (const it of v) {
+              if (typeof it === "string" && pattern.test(norm(it))) return true;
+              if (typeof it !== "object") continue;
+            }
+          }
+          if (typeof v === "string" && pattern.test(norm(v))) return true;
+        }
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  const isOwner =
+    truthy(t?.is_owner) ||
+    truthy(t?.membership?.is_owner) ||
+    roleStr === "owner" ||
+    roleStr === "admin" ||
+    perms.some((p) => p === "owner" || p === "admin" || p === "manage" || p.startsWith("manage")) ||
+    deepImplies(t?.membership, /owner|admin|manage/);
+
+  if (isOwner) return "owner";
+
+  const editFlags = [
+    t?.is_editor,
+    t?.can_edit,
+    t?.can_edit_items,
+    t?.can_write,
+    t?.can_update,
+    t?.can_modify,
+    t?.membership?.can_edit,
+    t?.membership?.is_editor,
+    t?.membership?.can_write,
+    t?.membership?.can_update,
+    t?.membership?.can_modify,
+  ];
+
+  const hasEditFlag = editFlags.some(truthy);
+
+  const roleImpliesEdit =
+    roleStr === "editor" ||
+    roleStr === "edit" ||
+    roleStr === "maintainer" ||
+    roleStr === "contributor" ||
+    roleStr === "collaborator" ||
+    roleStr === "member_edit" ||
+    roleStr === "editor_member";
+
+  const permsImpliesEdit =
+    perms.some(
+      (p) =>
+        p === "editor" ||
+        p === "edit" ||
+        p.startsWith("edit") ||
+        p === "write" ||
+        p.startsWith("write") ||
+        p === "update" ||
+        p.startsWith("update") ||
+        p === "modify" ||
+        p.startsWith("modify")
+    ) || deepImplies(t, /edit|write|update|modify/);
+
+  return hasEditFlag || roleImpliesEdit || permsImpliesEdit ? "editor" : "viewer";
 }
 
 export default function AllTrips() {
@@ -121,13 +238,7 @@ export default function AllTrips() {
       if (hidePast && t.__past) return false;
       if (roleFilter !== "all" && t.__role !== roleFilter) return false;
       if (!q) return true;
-      const hay = [
-        t.name,
-        t.city_name,
-        t.formatted_address,
-        t.slug,
-        t.country_code,
-      ]
+      const hay = [t.name, t.city_name, t.formatted_address, t.slug, t.country_code]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -152,8 +263,7 @@ export default function AllTrips() {
 
   if (err) return <div className="alert alert-danger">{err}</div>;
   if (trips === null) return <p className="text-muted">Loading trips…</p>;
-  if (trips.length === 0)
-    return <p className="text-muted mb-0">No trips yet. Click “Create Trip” to start.</p>;
+  if (trips.length === 0) return <p className="text-muted mb-0">No trips yet. Click “Create Trip” to start.</p>;
 
   return (
     <>
@@ -171,7 +281,6 @@ export default function AllTrips() {
                 onChange={(e) => setQuery(e.target.value)}
               />
             </div>
-
             <div className="d-flex align-items-center gap-2 flex-shrink-0 flex-wrap">
               <div className="form-check form-switch d-flex align-items-center mb-0 flex-shrink-0">
                 <input
@@ -185,7 +294,6 @@ export default function AllTrips() {
                   Hide past trips
                 </label>
               </div>
-
               <div className="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="Role filter">
                 <button
                   type="button"
@@ -220,12 +328,10 @@ export default function AllTrips() {
           </div>
         </div>
       </div>
-
       <div className="d-flex justify-content-between align-items-center mb-2 text-muted small">
         <div>{filtered.length} trips • {counts.upcoming} upcoming</div>
         {!hidePast && <div>Showing past and upcoming</div>}
       </div>
-
       {filtered.length === 0 ? (
         <p className="text-muted mb-0">
           No trips match {query ? `"${query}"` : "your filters"}{roleFilter !== "all" ? ` as ${roleFilter}` : ""}{hidePast ? " with past hidden" : ""}.
