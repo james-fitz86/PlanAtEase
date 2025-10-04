@@ -8,6 +8,7 @@ import PageContainer from "../../components/base/PageContainer";
 import { countryNameFromCode } from "../../utils/geo";
 import TripMap from "../../components/trips/TripMap";
 import backdrop from "../../assets/images/backdrop.png";
+import { me as getMe } from "../../api";
 
 function formatDate(dateStr) {
   if (!dateStr) return "-";
@@ -42,6 +43,19 @@ export default function TripDetailPage() {
   const [itemsVersion, setItemsVersion] = useState(0);
   const [items, setItems] = useState([]);
   const [dayFilter, setDayFilter] = useState(null);
+
+  const [currentUser, setCurrentUser] = useState(null);
+    useEffect(() => {
+      let alive = true;
+      (async () => {
+        try {
+          const u = await getMe();
+          if (alive) setCurrentUser(u);
+        } catch {
+        }
+      })();
+      return () => { alive = false; };
+    }, []);
 
   const itemsForMap = useMemo(() => {
     const base = dayFilter ? items.filter((it) => it.date === dayFilter) : items;
@@ -158,6 +172,52 @@ export default function TripDetailPage() {
 
   const tripUrlId = trip.slug || trip.uid || trip.id;
 
+  const tripRole = (
+    trip?.my_role ||
+    trip?.role ||
+    trip?.member_role ||
+    trip?.membership?.role ||
+    ""
+  ).toLowerCase();
+
+  const tripPermitsEdit =
+    !!trip?.is_owner ||
+    !!trip?.is_editor ||
+    trip?.can_edit === true ||
+    trip?.can_edit_items === true ||
+    (Array.isArray(trip?.permissions) &&
+      trip.permissions.some((p) => /edit/i.test(p))) ||
+    (tripRole && tripRole !== "viewer");
+
+  let membersSayICanEdit = false;
+  if (Array.isArray(members) && members.length) {
+    const meMember = members.find((m) => {
+      const idMatch =
+        currentUser?.id != null &&
+        (m.user_id === currentUser.id ||
+          m.user?.id === currentUser.id ||
+          m.account_id === currentUser.id);
+      const emailMatch =
+        currentUser?.email &&
+        typeof m.email === "string" &&
+        m.email.toLowerCase() === currentUser.email.toLowerCase();
+      const flaggedAsMe =
+        m.is_me || m.me || m.you || m.is_self || m.user_is_me || m.is_you || m.current;
+      return idMatch || emailMatch || flaggedAsMe;
+    });
+    const myRoleFromMembers = (
+      meMember?.role ||
+      meMember?.member_role ||
+      meMember?.role_key ||
+      meMember?.role_name ||
+      ""
+    ).toLowerCase();
+    membersSayICanEdit = !!myRoleFromMembers && myRoleFromMembers !== "viewer";
+  }
+
+  const allowEditItems = tripPermitsEdit || membersSayICanEdit;
+
+
   return (
     <PageContainer className="my-3">
       <header
@@ -240,6 +300,7 @@ export default function TripDetailPage() {
                     return found ? next : [...next, u];
                   })
                 }
+                allowEdit={allowEditItems}
               />
             </div>
           </div>
