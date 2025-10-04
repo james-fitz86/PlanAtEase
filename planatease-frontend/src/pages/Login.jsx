@@ -18,14 +18,44 @@ export default function Login() {
     }
   }, []);
 
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+
+    if (!email.trim() || !password.trim()) {
+      setError("Email and password are required.");
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
     try {
       await login(email, password);
-      nav("/dashboard"); 
+      nav("/dashboard");
     } catch (err) {
       setError("Invalid email or password.");
+    }
+  }
+
+  function handleEmailBlur() {
+    if (email && !isValidEmail(email)) {
+      setError("Please enter a valid email address.");
+    } else {
+      setError("");
+    }
+  }
+
+  function handlePasswordBlur() {
+    if (!password.trim()) {
+      setError("Password is required.");
+    } else {
+      setError("");
     }
   }
 
@@ -44,6 +74,7 @@ export default function Login() {
               name="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onBlur={handleEmailBlur}
               autoComplete="email"
               required
               className="form-control"
@@ -60,6 +91,7 @@ export default function Login() {
               name="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onBlur={handlePasswordBlur}
               autoComplete="current-password"
               required
               className="form-control"
@@ -73,8 +105,10 @@ export default function Login() {
             Sign in
           </button>
 
-          <div className="text-center">
-            <Link to="/password-reset">Forgot your password?</Link>
+          <div className="text-center mt-3">
+            <Link to="/password-reset" className="btn btn-link btn-sm p-0">
+              Forgot your password?
+            </Link>
           </div>
         </form>
       </div>

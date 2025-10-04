@@ -13,18 +13,52 @@ export default function Register() {
   });
   const [error, setError] = useState("");
 
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  function handleBlur(e) {
+    const { name, value } = e.target;
+    if (!value.trim()) {
+      setError(`${name.replace("_", " ")} is required.`);
+      return;
+    }
+    if (name === "email" && !isValidEmail(value)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if ((name === "password2" || name === "password") && form.password2 && form.password !== form.password2) {
+      setError("Passwords do not match.");
+      return;
+    }
+    setError("");
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (!form.email || !form.full_name || !form.password || !form.password2) {
+      setError("All fields are required.");
+      return;
+    }
+    if (!isValidEmail(form.email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (form.password !== form.password2) {
+      setError("Passwords do not match.");
+      return;
+    }
+
     try {
       await register(form);
       nav("/check-email", { state: { email: form.email } });
     } catch (err) {
-      console.error("REGISTER ERROR:", err.response?.data || err.message);
       setError(
         JSON.stringify(err.response?.data) || "Registration failed, try again."
       );
@@ -47,6 +81,7 @@ export default function Register() {
               className="form-control"
               value={form.email}
               onChange={handleChange}
+              onBlur={handleBlur}
               autoComplete="email"
               required
             />
@@ -63,6 +98,7 @@ export default function Register() {
               className="form-control"
               value={form.full_name}
               onChange={handleChange}
+              onBlur={handleBlur}
               required
             />
           </div>
@@ -78,6 +114,7 @@ export default function Register() {
               className="form-control"
               value={form.password}
               onChange={handleChange}
+              onBlur={handleBlur}
               autoComplete="new-password"
               required
             />
@@ -94,6 +131,7 @@ export default function Register() {
               className="form-control"
               value={form.password2}
               onChange={handleChange}
+              onBlur={handleBlur}
               autoComplete="new-password"
               required
             />

@@ -17,29 +17,40 @@ function getAccessToken() {
 export default function ResetPassword() {
   const { uid, token } = useParams();
   const navigate = useNavigate();
-
   const isResetFlow = useMemo(() => Boolean(uid && token), [uid, token]);
-
   const [currentPw, setCurrentPw] = useState("");
   const [p1, setP1] = useState("");
   const [p2, setP2] = useState("");
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
 
+  function handleBlur(e) {
+    const { id, value } = e.target;
+    if (!value.trim()) {
+      setError("All fields are required.");
+      return;
+    }
+    if ((id === "pw1" || id === "pw2") && p1 && p2 && p1 !== p2) {
+      setError("Passwords do not match.");
+      return;
+    }
+    setError("");
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
+    if (!p1 || !p2 || (!isResetFlow && !currentPw)) {
+      setError("All fields are required.");
+      return;
+    }
     if (p1 !== p2) {
       setError("Passwords do not match.");
       return;
     }
     if (isResetFlow && (!uid || !token)) {
       setError("Reset link is invalid.");
-      return;
-    }
-    if (!isResetFlow && !currentPw) {
-      setError("Please enter your current password.");
       return;
     }
     if (!isResetFlow) {
@@ -81,10 +92,9 @@ export default function ResetPassword() {
         setStatus("done");
       } else {
         const data = await res.json().catch(() => ({}));
-        const fallback =
-          isResetFlow
-            ? "Link invalid or expired. Please request a new reset link."
-            : "Could not change password. Check your current password and try again.";
+        const fallback = isResetFlow
+          ? "Link invalid or expired. Please request a new reset link."
+          : "Could not change password. Check your current password and try again.";
         const msg =
           data?.detail ||
           data?.non_field_errors?.[0] ||
@@ -141,6 +151,7 @@ export default function ResetPassword() {
                 placeholder="Current password"
                 value={currentPw}
                 onChange={(e) => setCurrentPw(e.target.value)}
+                onBlur={handleBlur}
                 required
               />
             </div>
@@ -156,6 +167,7 @@ export default function ResetPassword() {
               placeholder="New password"
               value={p1}
               onChange={(e) => setP1(e.target.value)}
+              onBlur={handleBlur}
               required
             />
           </div>
@@ -170,6 +182,7 @@ export default function ResetPassword() {
               placeholder="Confirm new password"
               value={p2}
               onChange={(e) => setP2(e.target.value)}
+              onBlur={handleBlur}
               required
             />
           </div>

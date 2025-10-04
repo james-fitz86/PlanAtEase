@@ -9,9 +9,9 @@ export default function Profile() {
   const nav = useNavigate();
   const [form, setForm] = useState(null);
   const [editing, setEditing] = useState(false);
-  
 
-  useEffect(() => {let ignore = false;
+  useEffect(() => {
+    let ignore = false;
     me()
       .then((data) => {
         if (ignore) return;
@@ -26,8 +26,14 @@ export default function Profile() {
         setErr("Session expired. Please log in again.");
         nav("/login");
       });
-    return () => { ignore = true; };
+    return () => {
+      ignore = true;
+    };
   }, [nav]);
+
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
 
   function startEdit() {
     if (!user) return;
@@ -45,7 +51,20 @@ export default function Profile() {
     setForm((f) => ({ ...f, [name]: value }));
   }
 
+  function handleBlur(e) {
+    const { name, value } = e.target;
+    if (name === "email" && value && !isValidEmail(value)) {
+      setErr("Please enter a valid email address.");
+      return;
+    }
+    setErr("");
+  }
+
   async function save() {
+    if (form.email && !isValidEmail(form.email)) {
+      setErr("Please enter a valid email address.");
+      return;
+    }
     try {
       const updated = await updateMe(form);
       setUser(updated);
@@ -64,7 +83,6 @@ export default function Profile() {
     setEditing(false);
     setErr("");
   }
-  
 
   if (!user && !err) return <p style={{ padding: 24 }}>Loading…</p>;
 
@@ -102,7 +120,11 @@ export default function Profile() {
                 <ul className="list-group mb-3">
                   <li className="list-group-item d-flex justify-content-between align-items-center">
                     <strong>Name</strong>
-                    <span>{user.full_name || <span className="text-muted">Not set</span>}</span>
+                    <span>
+                      {user.full_name || (
+                        <span className="text-muted">Not set</span>
+                      )}
+                    </span>
                   </li>
                   <li className="list-group-item d-flex justify-content-between align-items-center">
                     <strong>Email</strong>
@@ -110,7 +132,11 @@ export default function Profile() {
                   </li>
                   <li className="list-group-item d-flex justify-content-between align-items-center">
                     <strong>Home Location</strong>
-                    <span>{user.home_location || <span className="text-muted">Not set</span>}</span>
+                    <span>
+                      {user.home_location || (
+                        <span className="text-muted">Not set</span>
+                      )}
+                    </span>
                   </li>
                 </ul>
               </div>
@@ -120,7 +146,10 @@ export default function Profile() {
               <Link to="/password/change" className="btn btn-primary btn-sm">
                 Change Password
               </Link>
-              <Link to="/dashboard" className="btn btn-outline-secondary btn-sm">
+              <Link
+                to="/dashboard"
+                className="btn btn-outline-secondary btn-sm"
+              >
                 Back to Dashboard
               </Link>
             </div>
@@ -137,6 +166,7 @@ export default function Profile() {
                   name="full_name"
                   value={form.full_name}
                   onChange={onChange}
+                  onBlur={handleBlur}
                 />
               </div>
 
@@ -148,6 +178,7 @@ export default function Profile() {
                   name="email"
                   value={form.email}
                   onChange={onChange}
+                  onBlur={handleBlur}
                 />
               </div>
 
@@ -158,6 +189,7 @@ export default function Profile() {
                   name="home_location"
                   value={form.home_location}
                   onChange={onChange}
+                  onBlur={handleBlur}
                 />
               </div>
             </div>

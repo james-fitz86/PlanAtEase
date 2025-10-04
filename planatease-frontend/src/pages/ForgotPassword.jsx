@@ -8,10 +8,25 @@ export default function ForgotPassword() {
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
 
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setStatus("loading");
     setError("");
+
+    if (!email.trim()) {
+      setError("Email is required.");
+      setStatus("error");
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address.");
+      setStatus("error");
+      return;
+    }
 
     try {
       const res = await fetch(`${API}/auth/users/reset_password/`, {
@@ -33,55 +48,65 @@ export default function ForgotPassword() {
     }
   }
 
+  function handleBlur() {
+    if (email && !isValidEmail(email)) {
+      setError("Please enter a valid email address.");
+    } else {
+      setError("");
+    }
+  }
+
   if (status === "sent") {
     return (
       <PageContainer className="my-5">
-          <div className="card shadow-sm p-4 mx-auto" style={{ maxWidth: 420 }}>
-            <h1 className="h4 mb-3">Check your email</h1>
-            <p>
-              If an account exists for <strong>{email}</strong>, you’ll receive a link to reset your password.
-            </p>
-          </div>
+        <div className="card shadow-sm p-4 mx-auto" style={{ maxWidth: 420 }}>
+          <h1 className="h4 mb-3">Check your email</h1>
+          <p>
+            If an account exists for <strong>{email}</strong>, you’ll receive a link to reset your password.
+          </p>
+        </div>
       </PageContainer>
     );
   }
 
   return (
     <PageContainer className="my-5">
-        <div className="card shadow-sm p-4 mx-auto" style={{ maxWidth: 420 }}>
-          <h1 className="h4 mb-3">Reset your password</h1>
-          <p className="text-muted">Enter the email associated with your account.</p>
+      <div className="card shadow-sm p-4 mx-auto" style={{ maxWidth: 420 }}>
+        <h1 className="h4 mb-3">Reset your password</h1>
+        <p className="text-muted">Enter the email associated with your account.</p>
 
-          <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <label htmlFor="email" className="form-label">Email address</label>
-              <input
-                id="email"
-                type="email"
-                className="form-control"
-                autoComplete="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label htmlFor="email" className="form-label">Email address</label>
+            <input
+              id="email"
+              type="email"
+              className="form-control"
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onBlur={handleBlur}
+              required
+            />
+          </div>
+
+          {status === "error" && (
+            <div className="alert alert-danger" role="alert">
+              {error}
             </div>
+          )}
 
-            {status === "error" && (
-              <div className="alert alert-danger" role="alert">
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              className="btn btn-primary w-100"
-              disabled={status === "loading"}
-            >
-              {status === "loading" ? "Sending…" : "Send reset email"}
-            </button>
-          </form>
-        </div>
+          <button
+            type="submit"
+            className="btn btn-primary w-100"
+            disabled={status === "loading"}
+          >
+            {status === "loading" ? "Sending…" : "Send reset email"}
+          </button>
+        </form>
+      </div>
     </PageContainer>
   );
 }
+
