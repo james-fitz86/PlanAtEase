@@ -20,6 +20,7 @@ import GuestTripDetailPage from "./pages/trips/GuestTripDetailPage.jsx";
 import GuestTripEditPage from "./pages/trips/GuestTripEditPage.jsx";
 import Home from "./pages/Home.jsx";
 import About from "./pages/About.jsx";
+import Contact from "./pages/Contact.jsx";
 import "./App.css";
 
 import { decodeJwt, secondsUntilExpiry } from "./auth/jwt";
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/register" element={< Register />} />
           <Route path="/activate/:uid/:token" element={<ActivateAccount />} />
           <Route path="/check-email" element={<CheckEmail />} />

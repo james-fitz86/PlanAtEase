@@ -31,4 +31,5 @@ urlpatterns = [
     path("auth/", include("users.urls", namespace="users")),
     path("auth/", include("djoser.urls")),
     path("api/trips/", include("trips.urls", namespace="trips")),
+    path("api/contact/", include("contact.urls", namespace="contact")),
 ]

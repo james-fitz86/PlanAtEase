@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     'users.apps.UsersConfig',
     'trips.apps.TripsConfig',
+    'contact.apps.ContactConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -149,10 +150,13 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.ScopedRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
+        "anon": "60/min",
         "guest_write": "20/min",
+        "contact": "5/hour",
     },
 }
 
@@ -201,4 +205,5 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_PASS")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
+CONTACT_RECIPIENTS = ["hello@planatease.site"]
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
