@@ -771,3 +771,34 @@ gm-style .gm-style-iw-d {
 }
 .navbar .badge.text-bg-primary { font-weight: 600; }
 .dropdown-menu .dropdown-item small { opacity: .8; }
+.alert[role="alert"] {
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+}
+
+@media (max-width: 576px) {
+  .alert[role="alert"] {
+    flex-direction: column;
+    align-items: stretch !important;
+    text-align: center;
+    gap: 0.75rem;
+  }
+
+  .alert[role="alert"] .me-3 {
+    margin-right: 0 !important;
+  }
+
+  .alert[role="alert"] .btn {
+    width: 100%;
+  }
+
+  .alert[role="alert"] strong {
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+
+  .alert[role="alert"] .small {
+    display: block;
+    margin-top: 0.5rem;
+  }
+}
