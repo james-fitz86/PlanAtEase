@@ -157,7 +157,7 @@ export default function GuestTripDetailPage() {
             </span>
           </div>
           <div className="d-flex gap-2">
-            <Link to="/register" className="btn btn-sm btn-primary">
+            <Link to="/register" className="btn nebula-pill nebula-solid cta-btn">
               Save my trip
             </Link>
             <button
@@ -202,14 +202,29 @@ export default function GuestTripDetailPage() {
           <div className="row g-4">
             <div className="col-12">
               <div className="card border-0 bg-light">
-                <div className="card-body">
-                  <strong>Members</strong>
-                  <p className="mb-0 small text-muted">
-                    Available for registered users. Add collaborators and set roles after you sign up.
+                <div className="card-body text-center">
+                  <strong>Collaborate & unlock Day View</strong>
+                  <p className="mb-2 small text-muted">
+                    Create a free account to share your trip with others and access richer planning tools.
                   </p>
+
+                  <ul className="small mb-3 ps-3 text-start d-inline-block">
+                    <li>Invite members and set roles (Owner, Editor, Viewer)</li>
+                    <li>Shared itinerary with live updates</li>
+                    <li>Day View with 7-day weather forecasts</li>
+                    <li>Per-day map to visualise plans</li>
+                  </ul>
+
+                  <div className="d-flex justify-content-center">
+                    <Link to="/register" className="btn nebula-pill nebula-solid cta-btn">
+                      Create a free account
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
+
+
 
             <div className="col-12">
               <CreateTripItem
