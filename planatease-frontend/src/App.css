@@ -769,3 +769,5 @@ gm-style .gm-style-iw-d {
     font-size: 1.75rem;
   }
 }
+.navbar .badge.text-bg-primary { font-weight: 600; }
+.dropdown-menu .dropdown-item small { opacity: .8; }

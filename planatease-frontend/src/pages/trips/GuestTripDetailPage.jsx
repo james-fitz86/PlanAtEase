@@ -13,6 +13,7 @@ import {
   guestDeleteTripItem,
 } from "../../api/trips_guest";
 import backdrop from "../../assets/images/backdrop.png";
+import { captureGuestTrip } from "../../api/guestTripsLocal";
 
 function formatDate(dateStr) {
   if (!dateStr) return "-";
@@ -100,6 +101,7 @@ export default function GuestTripDetailPage() {
         const t = await guestGetTrip(gid);
         if (!alive) return;
         setTrip(t);
+        captureGuestTrip({ ...t, updated_at: new Date().toISOString() });
       } catch (e) {
         if (alive) setErr(e.body?.detail || e.message || "Failed to load guest trip");
       } finally {

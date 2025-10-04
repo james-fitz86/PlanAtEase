@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import LogoImage from "../../assets/images/favicon.png";
 import { useEffect, useState } from "react";
 import { logout } from "../../api";
+import HeaderGuestTrips from "./HeaderGuestTrips";
+import { clearGuestTrips } from "../../api/guestTripsLocal";
 
 function isLoggedInFromStorage() {
   try {
@@ -22,7 +24,11 @@ export default function Header() {
     };
     window.addEventListener("storage", onStorage);
 
-    const onAuthChanged = () => setLoggedIn(isLoggedInFromStorage());
+    const onAuthChanged = () => {
+      const next = isLoggedInFromStorage();
+      setLoggedIn(next);
+      if (next) clearGuestTrips();
+    };
     window.addEventListener("auth-changed", onAuthChanged);
 
     let bc;
@@ -34,6 +40,7 @@ export default function Header() {
     return () => {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("auth-changed", onAuthChanged);
+      try { bc?.close(); } catch {}
     };
   }, []);
 
@@ -68,6 +75,7 @@ export default function Header() {
 
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav ms-auto align-items-lg-center gap-lg-3">
+              <HeaderGuestTrips isLoggedIn={loggedIn} />
               {/* About link as informational */}
               <li className="nav-item">
                 <Link className="nav-link" to="/about">
@@ -90,7 +98,13 @@ export default function Header() {
                   <li className="nav-item">
                     <button
                       className="btn nebula-pill nebula-outline"
-                      onClick={logout}
+                      onClick={async () => {
+                        try {
+                          await logout();
+                        } finally {
+                          clearGuestTrips();
+                        }
+                      }}
                     >
                       Log out
                     </button>

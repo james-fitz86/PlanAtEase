@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { useEffect } from "react";
-import logo from "./assets/images/planatease_logo.png";
 import Header from "./components/base/Header.jsx";
 import Footer from "./components/base/Footer.jsx";
 import Login from "./pages/Login.jsx";
@@ -22,6 +21,8 @@ import Home from "./pages/Home.jsx";
 import About from "./pages/About.jsx";
 import Contact from "./pages/Contact.jsx";
 import "./App.css";
+import GuestTripsBootstrapper from "./components/trips/GuestTripsBootstrapper.jsx";
+import GuestTripsPage from "./pages/trips/GuestTripsPage.jsx";
 
 import { decodeJwt, secondsUntilExpiry } from "./auth/jwt";
 import { getTokens } from "./auth/storage";
@@ -47,6 +48,7 @@ export default function App() {
   }
   return (
     <Router>
+      <GuestTripsBootstrapper />
       <Header />
       <main>
         <Routes>
@@ -113,6 +115,7 @@ export default function App() {
           <Route path="/password/change" element={<ResetPassword />} />
           <Route path="/guest/trips/:guestTripId" element={<GuestTripDetailPage />} />
           <Route path="/guest/trips/:guestTripId/edit" element={<GuestTripEditPage />} />
+          <Route path="/guest/trips" element={<GuestTripsPage />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </main>
