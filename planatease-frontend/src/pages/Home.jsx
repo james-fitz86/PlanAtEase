@@ -8,30 +8,54 @@ import c3 from "../assets/images/carousel_3.png";
 
 import PageContainer from "../components/base/PageContainer";
 
+/**
+  * HeroCarousel
+  * Auoplaying carousel used in the home page hero section.
+  */
+
 function HeroCarousel({ images = [], intervalMs = 4000 }) {
+  // Index of the slide currently visible
   const [index, setIndex] = useState(0);
+
+  // Stores the autoplay time to stop/clear it
   const timerRef = useRef(null);
+
+  // Tracks hover state to pause autoplay when user interacts
   const hoverRef = useRef(false);
+
+  // Used to detect swipe direction on touch devices
   const touchStartX = useRef(null);
 
+  // Move to the next / previous slide
   const next = () => setIndex((i) => (i + 1) % images.length);
   const prev = () => setIndex((i) => (i - 1 + images.length) % images.length);
-  const goTo = (i) => setIndex(i);
 
+  // Jump directly to a chosen slide
+  const goTo = (i) => setIndex(i);
+  
+  // Autoplay logic - only runs if images exist
   useEffect(() => {
     if (!images.length) return;
+
     timerRef.current = setInterval(() => {
+      // Only run autoplay when not hoverered
       if (!hoverRef.current) next();
     }, intervalMs);
+
+    // Cleanup on unmount or Update
     return () => clearInterval(timerRef.current);
   }, [images.length, intervalMs]);
 
+  // Pause autoplay when hovering
   const onMouseEnter = () => { hoverRef.current = true; };
   const onMouseLeave = () => { hoverRef.current = false; };
 
+  // Touch start position (for wipe direction)
   const onTouchStart = (e) => {
     touchStartX.current = e.changedTouches[0].clientX;
   };
+
+  // Detect swipe direction on touch end
   const onTouchEnd = (e) => {
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     if (Math.abs(dx) > 30) {
@@ -48,6 +72,7 @@ function HeroCarousel({ images = [], intervalMs = 4000 }) {
       onTouchEnd={onTouchEnd}
       aria-roledescription="carousel"
     >
+      {/* Slide Images */}
       <div className="slides-wrap">
         {images.map((src, i) => (
           <img
@@ -60,6 +85,7 @@ function HeroCarousel({ images = [], intervalMs = 4000 }) {
         ))}
       </div>
 
+      {/* Prev / Next arrows */}
       <button
         className="carousel-nav prev"
         onClick={prev}
@@ -77,6 +103,7 @@ function HeroCarousel({ images = [], intervalMs = 4000 }) {
         ›
       </button>
 
+      {/* Slide Indicators */}
       <div className="carousel-dots" role="tablist" aria-label="Select slide">
         {images.map((_, i) => (
           <button
@@ -91,6 +118,7 @@ function HeroCarousel({ images = [], intervalMs = 4000 }) {
         ))}
       </div>
 
+      {/* Accessible live region for screen readers */}
       <span className="sr-only">Slide {index + 1} of {images.length}</span>
     </div>
   );
