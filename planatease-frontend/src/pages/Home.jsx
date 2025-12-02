@@ -127,7 +127,10 @@ function HeroCarousel({ images = [], intervalMs = 4000 }) {
 export default function Home() {
   return (
     <PageContainer className="my-4">
+      {/* Hero section - main lanfing introduction */}
       <section className="home-hero">
+
+        {/* Left column - branding + CTA */}
         <div className="hero-left">
           <div className="brand-row">
             <img src={logo} alt="PlanAtEase Logo" className="brand-hero" />
@@ -140,13 +143,15 @@ export default function Home() {
             activities, and transport into one clear itinerary—kept in sync with
             live weather and interactive maps.
           </p>
-
+          
+          {/* Key selling points */}
           <ul className="hero-points">
             <li>Fast trip setup with Google-powered city & place search</li>
             <li>Easy-to-edit timeline with all your travel plans</li>
             <li>Map previews and local weather at a glance</li>
           </ul>
 
+          {/* Primary call-to-action buttons */}
           <div className="cta-row">
             <Link to="/trips/create" className="btn nebula-pill nebula-solid cta-btn">
               Get started — Create a Trip
@@ -156,6 +161,7 @@ export default function Home() {
             </Link>
           </div>
 
+          {/* Feature badges */}
           <div className="feature-badges">
             <span className="badge-chip">No ads</span>
             <span className="badge-chip">Works on mobile</span>
@@ -163,6 +169,7 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Right column - app preview carousel */}
         <div className="hero-right">
           <div className="preview-card">
             <HeroCarousel images={[c1, c2, c3]} />

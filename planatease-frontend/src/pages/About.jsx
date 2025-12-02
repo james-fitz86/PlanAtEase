@@ -6,6 +6,7 @@ export default function About() {
       <div className="about-page" style={{ maxWidth: "800px", margin: "0 auto" }}>
         <h1>About Us</h1>
 
+        {/* Mission section */}
         <section>
           <h2>
             <i className="fa-solid fa-bullseye" style={{ marginRight: "8px" }}></i>
@@ -18,6 +19,7 @@ export default function About() {
           </p>
         </section>
 
+        {/* Origin Story */}
         <section>
           <h2>
             <i className="fa-solid fa-book-open" style={{ marginRight: "8px" }}></i>
@@ -30,6 +32,7 @@ export default function About() {
           </p>
         </section>
 
+        {/* Unique Selling Point */}
         <section>
           <h2>
             <i className="fa-solid fa-handshake" style={{ marginRight: "8px" }}></i>
@@ -42,6 +45,7 @@ export default function About() {
           </ul>
         </section>
 
+        {/* Values */}
         <section>
           <h2>
             <i className="fa-solid fa-check-circle" style={{ marginRight: "8px" }}></i>
@@ -53,6 +57,7 @@ export default function About() {
           </p>
         </section>
 
+        {/* Future growth */}
         <section>
           <h2>
             <i className="fa-solid fa-rocket" style={{ marginRight: "8px" }}></i>
